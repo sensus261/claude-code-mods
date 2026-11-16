@@ -1,0 +1,6 @@
+{
+  "name": "usage-meter",
+  "version": "0.1.0",
+  "description": "Session (5h) and weekly usage bars above the prompt, with a /limits pane for pace and reset details.",
+  "types": "./types/index.d.ts"
+}

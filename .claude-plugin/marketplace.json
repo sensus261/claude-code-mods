@@ -1,0 +1,17 @@
+{
+  "name": "claude-code-mods",
+  "owner": { "name": "sensus261" },
+  "description": "Small mods for the Claude Code terminal UI: a usage meter and a working critter.",
+  "plugins": [
+    {
+      "name": "usage-meter",
+      "source": "./plugins/usage-meter",
+      "description": "Session (5h) and weekly usage bars above the prompt, with a /limits pane for pace and reset details."
+    },
+    {
+      "name": "working-critter",
+      "source": "./plugins/working-critter",
+      "description": "A tiny pixel critter runs at the top-right corner while Claude is working."
+    }
+  ]
+}
