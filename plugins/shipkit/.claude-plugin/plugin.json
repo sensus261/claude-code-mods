@@ -1,0 +1,7 @@
+{
+  "name": "shipkit",
+  "version": "0.1.0",
+  "description": "Forge a project's own workflow commands (PRD, issue, PR, checks, pre-merge review, ship, changelog, docs sync, test playbooks, guided tours) from shared templates plus a profile scanned from the repo. /shipkit:forge installs or re-syncs them; /shipkit:harvest brings improvements back into the templates.",
+  "author": { "name": "sensus261" },
+  "keywords": ["workflow", "pull-request", "merge-request", "code-review", "github", "gitlab", "prd", "qa"]
+}

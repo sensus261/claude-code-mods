@@ -1,7 +1,9 @@
 {
   "name": "claude-code-mods",
-  "owner": { "name": "sensus261" },
-  "description": "Small mods for the Claude Code terminal UI: a usage meter and a working critter.",
+  "owner": {
+    "name": "sensus261"
+  },
+  "description": "Mods and tools for Claude Code: a usage meter, a working critter, and shipkit, a per-project workflow toolkit.",
   "plugins": [
     {
       "name": "usage-meter",
@@ -12,6 +14,11 @@
       "name": "working-critter",
       "source": "./plugins/working-critter",
       "description": "A tiny pixel critter runs at the top-right corner while Claude is working."
+    },
+    {
+      "name": "shipkit",
+      "source": "./plugins/shipkit",
+      "description": "Forge a project's own /<prefix>:* workflow commands (PRD → issue → PR → checks → pre-merge review → ship, test playbooks, guided tours) from shared templates and a scanned project profile; committed or hidden; re-sync any time."
     }
   ]
 }
