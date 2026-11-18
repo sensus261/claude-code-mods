@@ -5,10 +5,17 @@ Two small mods for the Claude Code terminal UI. Install either one alone, or bot
 | Mod | What it does |
 | --- | --- |
 | `usage-meter` | A row above the prompt with your session (5h) and weekly plan usage as bars, with the time until each resets. `/limits` opens a pane with pace, a hit-the-limit forecast, context and session cost. |
-| `working-critter` | A tiny pixel critter trots at the top-right of the screen while Claude is working. Terminal only. |
+| `working-critter` | A tiny pixel crew trots at the top-right of the screen while Claude is working: the main critter leads, with one follower per running subagent, background shell and monitor. Terminal only. |
 
 `usage-meter` shows plan limits only on a Claude subscription, and only after the first reply.
-`working-critter` pins to the top-right in fullscreen mode (`"tui": "fullscreen"`). In the inline layout it hangs one row above the working label instead.
+`working-critter` pins to the top-right in fullscreen mode (`"tui": "fullscreen"`). In the inline layout it stands on the working label's row instead. Its crew:
+
+- **Main critter**: runs, dashes, hops, looks around, waves and turns back to check on its crew, picked at random. Thought dots while Claude thinks, sparks while a tool runs.
+- **Subagents**: a smaller critter each, in its own color. It walks, hops, cheers or carries a box, and taps its foot while it waits.
+- **Background shells**: a little terminal on legs typing output. When the command ends it flashes green or red, then goes up in a puff.
+- **Monitors**: an eye-bot that scans side to side. Its antenna flashes and it hops when the monitor reports an event.
+
+Newcomers drop in from above. Between turns, while background work is still running, the crew moves to a band above the prompt and the main critter sleeps beside it.
 
 ## Install
 
