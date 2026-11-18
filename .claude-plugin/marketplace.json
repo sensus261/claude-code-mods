@@ -13,7 +13,7 @@
     {
       "name": "working-critter",
       "source": "./plugins/working-critter",
-      "description": "A tiny pixel critter runs at the top-right corner while Claude is working."
+      "description": "A tiny pixel crew runs at the top-right corner while Claude is working: one critter per agent, plus background shells and monitors."
     },
     {
       "name": "shipkit",
