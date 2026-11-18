@@ -190,6 +190,9 @@ type Member = {
   leftAt: number | undefined
   outcome: Outcome | undefined
   isWaiting: boolean
+  // A subagent whose turn ended: the agent list says whether it is gone or
+  // only waiting on background work of its own.
+  isDone: boolean
   alertAt: number
   act: HelperAct
   actAt: number
@@ -211,8 +214,8 @@ type Mount = {
 }
 
 // Animation state lives at module level on purpose: a blit never goes through
-// $.state, and a reload starting it over costs one frame (the crew comes back
-// at the next agent-list check and the next Stop's background-task list).
+// $.state, and a reload starting it over costs one frame (subagents come back
+// at the next agent-list check; shells and monitors already running do not).
 const s = {
   timer: null as { cancel: () => void } | null,
   isBusy: false,
@@ -945,6 +948,7 @@ const join = ($: EngineInterface, id: string, kind: Kind) => {
     // Back before its puff finished (a teammate's next turn): stay.
     known.leftAt = undefined
     known.outcome = undefined
+    known.isDone = false
 
     return
   }
@@ -960,6 +964,7 @@ const join = ($: EngineInterface, id: string, kind: Kind) => {
     leftAt: undefined,
     outcome: undefined,
     isWaiting: false,
+    isDone: false,
     alertAt: -Infinity,
     act: kind === 'monitor' ? 'scan' : 'walk',
     actAt: s.frame,
@@ -1020,7 +1025,12 @@ const syncAgents = async ($: EngineInterface) => {
 
       const agent = byId.get(m.id)
 
-      if (agent === undefined ? s.frame - m.bornAt > AGENT_GRACE_TICKS : !LIVE.has(agent.status)) {
+      const isGone =
+        agent === undefined
+          ? m.isDone || s.frame - m.bornAt > AGENT_GRACE_TICKS
+          : !LIVE.has(agent.status)
+
+      if (isGone) {
         leave($, m.id, agent?.status === 'failed' ? 'fail' : agent?.status === 'killed' ? 'stop' : 'ok')
       }
     }
@@ -1029,6 +1039,14 @@ const syncAgents = async ($: EngineInterface) => {
   } finally {
     s.isSyncing = false
   }
+}
+
+// A subagent's turn ended: gone, or only waiting? The list says, now and at
+// every check after.
+const doneAgent = ($: EngineInterface, m: Member) => {
+  m.isDone = true
+  start($)
+  void syncAgents($)
 }
 
 const field = (value: unknown, key: string): string | undefined => {
@@ -1065,59 +1083,53 @@ const noteTool = ($: EngineInterface, tool: string, response: unknown) => {
   }
 }
 
-const statusOutcome = (status: string): Outcome =>
-  status === 'completed' ? 'ok' : status === 'failed' ? 'fail' : 'stop'
+// Tool rows seen running, by render id. Only a call watched from its start
+// brings a newcomer, so the old rows of a resumed transcript bring nobody.
+const runningRows = new Set<string>()
 
-// `<task-notification>`s: one with a `<status>` says the task ended; a
-// monitor's without one is an event it saw.
-const readNotes = ($: EngineInterface, text: string) => {
-  for (const chunk of text.split('<task-notification>').slice(1)) {
-    const body = chunk.split('</task-notification>')[0] ?? chunk
-    const id = /<task-id>([^<]+)<\/task-id>/.exec(body)?.[1]?.trim()
-    const m = id === undefined ? undefined : s.crew.get(id)
-
-    if (id === undefined || m === undefined) {
-      continue
-    }
-
-    const status = /<status>([^<]+)<\/status>/.exec(body)?.[1]?.trim()
-
-    if (status !== undefined) {
-      leave($, id, statusOutcome(status))
-    } else if (m.kind === 'monitor') {
-      m.alertAt = s.frame
-      start($)
-    }
-  }
-}
-
-// A Stop's list of background work in flight settles the shells and monitors:
-// it names any the mod missed (after a reload) and drops any it did not hear
-// end.
-const reconcile = (
+// A tool row in the transcript, drawn again as its call resolves.
+const watchRow = (
   $: EngineInterface,
-  tasks: ReadonlyArray<{ id: string; type: string }> | undefined,
+  rowId: string,
+  tool: string,
+  isRunning: boolean,
+  output: unknown,
 ) => {
-  if (tasks === undefined) {
+  if (isRunning) {
+    runningRows.add(rowId)
+
     return
   }
 
-  const live = new Map<string, Kind>()
+  if (runningRows.delete(rowId)) {
+    noteTool($, tool, output)
+  }
+}
 
-  for (const task of tasks) {
-    if (task.type === 'shell' || task.type === 'monitor') {
-      live.set(task.id, task.type)
-    }
+const statusOutcome = (status: string): Outcome =>
+  status === 'completed' ? 'ok' : status === 'failed' ? 'fail' : 'stop'
+
+// Notification rows heard, by render id: a row is drawn again as it scrolls.
+const heardRows = new Set<string>()
+
+// A task notification: one with a status says the task ended; a monitor's
+// without one is an event it saw.
+const noteTask = ($: EngineInterface, id: string, status: string | undefined) => {
+  const m = s.crew.get(id)
+
+  if (m === undefined) {
+    return
   }
 
-  for (const m of s.crew.values()) {
-    if (m.kind !== 'agent' && m.leftAt === undefined && !live.has(m.id)) {
-      leave($, m.id, 'stop')
-    }
-  }
-
-  for (const [id, kind] of live) {
-    join($, id, kind)
+  if (m.kind === 'agent') {
+    // A subagent's "completed" also comes when it only stopped to wait on
+    // background work of its own: ask the agent list instead.
+    doneAgent($, m)
+  } else if (status !== undefined) {
+    leave($, id, statusOutcome(status))
+  } else if (m.kind === 'monitor') {
+    m.alertAt = s.frame
+    start($)
   }
 }
 
@@ -1148,9 +1160,11 @@ export const register: Register = on => {
 
   on('turn.complete', ($, e, next) => {
     quietly(() => {
-      if (e.agentId !== undefined) {
-        leave($, e.agentId, e.reason === 'error' ? 'fail' : e.isAborted ? 'stop' : 'ok')
-      } else if (s.crew.size === 0) {
+      const m = e.agentId === undefined ? undefined : s.crew.get(e.agentId)
+
+      if (m !== undefined) {
+        doneAgent($, m)
+      } else if (e.agentId === undefined && s.crew.size === 0) {
         stop()
       }
     })
@@ -1158,34 +1172,41 @@ export const register: Register = on => {
     return next(e)
   })
 
-  on('classic.PostToolUse', ($, e, next) => {
-    quietly(() => noteTool($, e.tool_name, e.tool_response))
+  // Shells and monitors are read off the transcript's own rows: a security
+  // plugin built into Claude Code may send the data events (tool results,
+  // stored rows, Stop) on past the mod, but every row is drawn.
+
+  // A tool call's row: a command sent to the background, a monitor armed, a
+  // task stopped. The row is kept as the engine draws it.
+  on('ui.render', { component: 'ToolUse' }, ($, e, next) => {
+    quietly(() =>
+      watchRow($, e.props.tool_use_id, e.props.tool, e.props.isRunning, e.props.output),
+    )
 
     return next(e)
   })
 
-  on('classic.Stop', ($, e, next) => {
-    quietly(() => reconcile($, e.background_tasks))
-
-    return next(e)
-  })
-
-  on('classic.SubagentStop', ($, e, next) => {
-    quietly(() => reconcile($, e.background_tasks))
-
-    return next(e)
-  })
-
-  on('session.append', ($, e, next) => {
+  // Calls folded into one count line ("ran 2 shell commands"): each the same.
+  on('ui.render', { component: 'ToolGroup' }, ($, e, next) => {
     quietly(() => {
-      for (const block of e.message.content) {
-        const text = block.type === 'text' ? block.text : undefined
-
-        if (typeof text === 'string' && text.includes('<task-notification>')) {
-          readNotes($, text)
-        }
-      }
+      e.props.calls.forEach((call, i) => {
+        const rowId = call.tool_use_id ?? `${e.requestId}:${i}`
+        watchRow($, rowId, call.tool, call.isRunning, call.output)
+      })
     })
+
+    return next(e)
+  })
+
+  // A background task's notification row: an ending, or a monitor's event.
+  on('ui.render', { component: 'UserMessage' }, ($, e, next) => {
+    const id = e.props.task?.id
+    const status = e.props.task?.status
+
+    if (id !== undefined && !heardRows.has(e.requestId)) {
+      heardRows.add(e.requestId)
+      quietly(() => noteTask($, id, status))
+    }
 
     return next(e)
   })
