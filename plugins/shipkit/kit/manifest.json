@@ -1,0 +1,224 @@
+{
+  "version": "0.1.0",
+  "profile": {
+    "core": [
+      "project.md",
+      "routing-tables.md",
+      "local-gate.md",
+      "review-rules.md",
+      "upgrade-steps.md"
+    ],
+    "tour": [
+      "tour.md",
+      "tour/surfaces.json"
+    ]
+  },
+  "templates": [
+    {
+      "src": "commands/plan-to-prd.md",
+      "dest": ".claude/commands/{{prefix}}:plan-to-prd.md",
+      "pack": "core"
+    },
+    {
+      "src": "commands/start-working-on-issue.md",
+      "dest": ".claude/commands/{{prefix}}:start-working-on-issue.md",
+      "pack": "core"
+    },
+    {
+      "src": "commands/analyze-changes.md",
+      "dest": ".claude/commands/{{prefix}}:analyze-changes.md",
+      "pack": "core"
+    },
+    {
+      "src": "commands/analyze-changes-branch.md",
+      "dest": ".claude/commands/{{prefix}}:analyze-changes-branch.md",
+      "pack": "core"
+    },
+    {
+      "src": "commands/code-review.md",
+      "dest": ".claude/commands/{{prefix}}:code-review.md",
+      "pack": "core"
+    },
+    {
+      "src": "commands/code-review-branch.md",
+      "dest": ".claude/commands/{{prefix}}:code-review-branch.md",
+      "pack": "core"
+    },
+    {
+      "src": "commands/review-tests.md",
+      "dest": ".claude/commands/{{prefix}}:review-tests.md",
+      "pack": "core"
+    },
+    {
+      "src": "commands/review-tests-branch.md",
+      "dest": ".claude/commands/{{prefix}}:review-tests-branch.md",
+      "pack": "core"
+    },
+    {
+      "src": "commands/update-docs.md",
+      "dest": ".claude/commands/{{prefix}}:update-docs.md",
+      "pack": "core"
+    },
+    {
+      "src": "commands/update-docs-branch.md",
+      "dest": ".claude/commands/{{prefix}}:update-docs-branch.md",
+      "pack": "core"
+    },
+    {
+      "src": "commands/update-docs-all.md",
+      "dest": ".claude/commands/{{prefix}}:update-docs-all.md",
+      "pack": "core"
+    },
+    {
+      "src": "commands/check-migrations.md",
+      "dest": ".claude/commands/{{prefix}}:check-migrations.md",
+      "pack": "core"
+    },
+    {
+      "src": "commands/check-migrations-branch.md",
+      "dest": ".claude/commands/{{prefix}}:check-migrations-branch.md",
+      "pack": "core"
+    },
+    {
+      "src": "commands/changelog.md",
+      "dest": ".claude/commands/{{prefix}}:changelog.md",
+      "pack": "core"
+    },
+    {
+      "src": "commands/changelog-branch.md",
+      "dest": ".claude/commands/{{prefix}}:changelog-branch.md",
+      "pack": "core"
+    },
+    {
+      "src": "commands/start-pre-commit-review.md",
+      "dest": ".claude/commands/{{prefix}}:start-pre-commit-review.md",
+      "pack": "core"
+    },
+    {
+      "src": "commands/start-pre-merge-review.md",
+      "dest": ".claude/commands/{{prefix}}:start-pre-merge-review.md",
+      "pack": "core"
+    },
+    {
+      "src": "commands/open-pr.md",
+      "dest": ".claude/commands/{{prefix}}:open-pr.md",
+      "pack": "core"
+    },
+    {
+      "src": "commands/pr-checks.md",
+      "dest": ".claude/commands/{{prefix}}:pr-checks.md",
+      "pack": "core"
+    },
+    {
+      "src": "commands/pr-review-feedback.md",
+      "dest": ".claude/commands/{{prefix}}:pr-review-feedback.md",
+      "pack": "core"
+    },
+    {
+      "src": "commands/ship.md",
+      "dest": ".claude/commands/{{prefix}}:ship.md",
+      "pack": "core"
+    },
+    {
+      "src": "commands/tag-release.md",
+      "dest": ".claude/commands/{{prefix}}:tag-release.md",
+      "pack": "core"
+    },
+    {
+      "src": "commands/audit-deps.md",
+      "dest": ".claude/commands/{{prefix}}:audit-deps.md",
+      "pack": "core"
+    },
+    {
+      "src": "commands/clear.md",
+      "dest": ".claude/commands/{{prefix}}:clear.md",
+      "pack": "core"
+    },
+    {
+      "src": "commands/run-playbook.md",
+      "dest": ".claude/commands/{{prefix}}:run-playbook.md",
+      "pack": "qa"
+    },
+    {
+      "src": "commands/pr-tour.md",
+      "dest": ".claude/commands/{{prefix}}:pr-tour.md",
+      "pack": "tour"
+    },
+    {
+      "src": "shared/host-github.md",
+      "dest": "{{shared}}/host.md",
+      "pack": "core",
+      "when": "github"
+    },
+    {
+      "src": "shared/host-gitlab.md",
+      "dest": "{{shared}}/host.md",
+      "pack": "core",
+      "when": "gitlab"
+    },
+    {
+      "src": "shared/brief-report.md",
+      "dest": "{{shared}}/brief-report.md",
+      "pack": "core"
+    },
+    {
+      "src": "shared/digest-discovery.md",
+      "dest": "{{shared}}/digest-discovery.md",
+      "pack": "core"
+    },
+    {
+      "src": "shared/pr-body.md",
+      "dest": "{{shared}}/pr-body.md",
+      "pack": "core"
+    },
+    {
+      "src": "shared/pr-notes.md",
+      "dest": "{{shared}}/pr-notes.md",
+      "pack": "core"
+    },
+    {
+      "src": "shared/code-review-checklist.md",
+      "dest": "{{shared}}/code-review-checklist.md",
+      "pack": "core"
+    },
+    {
+      "src": "shared/test-review-core.md",
+      "dest": "{{shared}}/test-review-core.md",
+      "pack": "core"
+    },
+    {
+      "src": "shared/commits.md",
+      "dest": "{{shared}}/commits.md",
+      "pack": "core"
+    },
+    {
+      "src": "shared/test-playbook.md",
+      "dest": "{{shared}}/test-playbook.md",
+      "pack": "qa"
+    },
+    {
+      "src": "shared/guided-tour.md",
+      "dest": "{{shared}}/guided-tour.md",
+      "pack": "tour"
+    },
+    {
+      "src": "shared/tour/chrome.sh",
+      "dest": "{{shared}}/tour/chrome.sh",
+      "pack": "tour",
+      "raw": true,
+      "mode": "755"
+    },
+    {
+      "src": "shared/tour/open.mjs",
+      "dest": "{{shared}}/tour/open.mjs",
+      "pack": "tour",
+      "raw": true
+    },
+    {
+      "src": "shared/tour/tour-panel.js",
+      "dest": "{{shared}}/tour/tour-panel.js",
+      "pack": "tour",
+      "raw": true
+    }
+  ]
+}
