@@ -1,18 +1,19 @@
 ---
-description: 🧪 QA — Run an issue's test playbook on the dev stack. It drives every step it can (CLI, SQL, HTTP, browser scripts), asks you only for judgment calls ({{#if tour}}in a guided tour: browser windows open signed in, with a ✓ / ✗ panel; or {{/if}}with the absolute path of every screenshot to open), can reach real services only when you choose, records results in ISSUE-<n>-QA-RESULTS.md, fixes the failures you pick, puts dev back and leaves a brief report in {{reports}}/
-argument-hint: "[issue-number | playbook-path] [parts, e.g. 2-4 | 1,3 | failed] [--real]{{#if tour}} [--tour | --shots]{{/if}}"
+description: 🧪 QA — Run an issue's test playbook (or a story playbook) on the dev stack. It drives every step it can (CLI, SQL, HTTP, browser scripts), asks you only for judgment calls ({{#if tour}}in a guided tour: browser windows open signed in, with a control window of ✓ / ✗ beside them; or {{/if}}with the absolute path of every screenshot to open), can reach real services only when you choose, records results in ISSUE-<n>-QA-RESULTS.md, fixes the failures you pick, puts dev back and leaves a brief report in {{reports}}/{{#if tour}}. With `demo`, it builds a playbook's data up to a part in a guided browser and keeps it, to show the app{{/if}}
+argument-hint: "[issue-number | playbook-path | story name] [parts, e.g. 2-4 | 1,3 | failed] [--real]{{#if tour}} [--tour | --shots] [demo]{{/if}}"
 ---
 
 ## Task
 
-Run `ISSUE-<n>-TEST-PLAYBOOK.md` against the dev stack and leave a results file a later session or a
-reviewer can trust.
+Run `ISSUE-<n>-TEST-PLAYBOOK.md`, or a story playbook from `{{shared}}/playbooks/`
+(`test-playbook.md` §Story playbooks), against the dev stack and leave a results file a later session
+or a reviewer can trust.{{#if tour}} With `demo`, the run builds data to show instead of testing it (§Demo mode).{{/if}}
 
 - **Drive, don't dictate.** Run every step you can yourself. The user only judges what a person must
   (👤 steps). Never read steps out for them to click.
 - **Show it, don't describe it.** {{#if tour}}A 👤 step is judged in a **guided tour** by default: browser
-  windows open already signed in on the right page, with a panel that says what to do and what they
-  should see, and ✓ Looks right / ✗ Problem buttons you watch live (Stage 4, *Guided tour of a
+  windows open already signed in on the right page, beside a control window that says what to do and
+  what they should see, with ✓ Looks right / ✗ Problem buttons you watch live (Stage 4, *Guided tour of a
   part*). When the user picks screenshots instead, print{{else}}For a 👤 step, print{{/if}} the absolute path of each
   screenshot, what to look at in it and what a pass looks like (Stage 4, *Handing evidence to the
   user*). Never "see the evidence folder".
@@ -21,7 +22,8 @@ reviewer can trust.
 - **Log failures and go on.** A failed step is recorded with its evidence and a read-only trace. The
   user picks what to fix at the end (Stage 5).
 - **Leave dev as you found it.** Every change to dev is written to the ledger *before* it is made,
-  and Stage 7 always runs, on an abort too.
+  and Stage 7 always runs, on an abort too.{{#if tour}} In demo mode the data the playbook built stays;
+  everything else is put back.{{/if}}
 - **End with a brief report.** Stage 9 writes a plain-words summary to `{{reports}}/`, on an abort too.
 
 Run the stages in order. Stop only at the GATEs.
@@ -34,8 +36,9 @@ helpers, quirks, test accounts, browser scripts) is `project.md` §Dev stack; re
 
 | Name | What |
 |---|---|
-| `<n>` | The issue number. For a playbook path that has no `ISSUE-<n>-` prefix, use its file stem instead |
-| `$PB` | The playbook file |
+| `<n>` | The issue number. For a playbook path that has no `ISSUE-<n>-` prefix (a story playbook), use its file stem instead |
+| `$PB` | The playbook file |{{#if tour}}
+| `$MODE` | `qa` (default) or `demo` (§Demo mode). Chosen in Stage 0 |{{/if}}
 | `$RES` | `ISSUE-<n>-QA-RESULTS.md` at the repo root. Local and untracked: never stage or commit it |
 | `$REPO` | The repo root as an absolute path (`git rev-parse --show-toplevel`). Screenshot paths shown to the user start with it |
 | `$REAL` | `local` (default) or `real`: whether the run may reach the real services of `project.md` §Real services. Chosen in Stage 2 |
@@ -83,22 +86,108 @@ account, a third-party API with real side effects, a shared environment). A part
 - **Never lifted by `real`:** production, anything that can bill, and the rest of `project.md`
   §Real services' *always ask* list. Each is asked on its own (Stage 2).
 
+{{#if tour}}
+### Demo mode
+
+`demo` in the arguments builds a playbook's data on the dev stack and leaves it there, so someone can
+show the app with it. It runs in the **guided browser** (below): the person sees every step happen
+and confirms it. It isn't a QA run: nothing is fixed, nothing is published. It is meant for the story
+playbooks (`test-playbook.md` §Story playbooks), whose parts build on each other. The stages run as
+described, with these differences:
+
+| Stage | In demo mode |
+|---|---|
+| 0 | A single part number `N` means `0-N`: everything up to the end of Part N. A range or a list is taken as given; none means every part. `--tour` / `--shots` are ignored |
+| 1 | Step 5: when `$RES` shows parts already done (by a demo or a QA run), offer **Go on after Part <last done> (Recommended)** first: their data is still on dev, so those parts don't run again. Part 0 still runs |
+| 2 | No scope or judging question: print the plan and go. Still asked: the real-services question (a demo stays local unless the user says otherwise), each live part, and the *always asked* list. Warn when a part in scope needs a part that is neither in scope nor done in `$RES` |
+| 3 | As usual, ledger included: it becomes the list of what the demo left on dev. The tour browser always starts (step 7) |
+| 4 | The parts run in the guided browser. Every step's `→ Expect:` is still checked by the script, and the person gives a verdict on it (✓ / ✗): that verdict covers the 👤 judgments; a ✗ is a finding, with its screenshot. A step or part the playbook says to ask about first (⚠️ permanent, a reset) is still asked, in the terminal, before its part starts. On ❌: repair an environment problem and retry once, as usual; otherwise record it, mark the steps that depend on it ⏭ blocked and go on. Never edit product code or `$PB` |
+| 5–6b | Skipped. The findings go into the summary, with a pointer to the QA run (the same parts without `demo`) that would fix them |
+| 7 | Run the playbook's *Put dev back* part, which says what demo mode keeps. Undo only the ledger lines that aren't demo data (a `.env` key, a service started for one step) and tick the rest `kept (demo)`. The throwaway accounts stay enabled: the person signs in with them to show the app. Stop the tour browser. Keep `$EV` without asking; delete `$WS` last, except `vars.json` (the ids the next parts read), `accounts.json` (`chmod 600`) and `$EV` |
+| 8 | Print the *Demo ready* block instead of the summary. Nothing is published to {{a_PR}} |
+| 9 | The report is `{{reports}}/<YYYY-MM-DD>-<file stem>-demo.md` |
+
+#### Guided browser
+
+A demo is shown, not only built. The person drives it from the control window of the guided tour
+(`{{shared}}/guided-tour.md`); you watch the events.
+
+- **Part scripts.** One per part: `{{shared}}/playbooks/<stem>/part-<N>.mjs`, built on
+  `{{shared}}/tour/demo.mjs` (read its header). Run the existing ones as they are. A part in scope
+  with no script: write it from the playbook part, following the existing scripts:
+  - one `steps` entry per playbook step (`id` `<P>.<S>`, `do` who does what, `see` its `→ Expect:`,
+    `highlight` the control it names), and a last `end` entry;
+  - `demo.window(<role>, { surface, login })` per role of the part, signed in with the throwaway
+    account (`tour.md` §Accounts), or without `login` for a public page;
+  - `demo.go`, or `demo.wait` + `demo.act`, before every page and every action; `demo.mark` after the
+    step's checks; `demo.saveVars` for the ids and codes later parts need (never links or passwords);
+    `demo.closePrompt` last, all inside `demo.run`.
+
+  Keep it next to the others. It is the project's file: in committed mode it is committed with the
+  playbook, after the user approves the commit. A read-only part can be smoke-tested first with no
+  window: `TOUR_HEADLESS=1 TOUR_CDP_PORT=<spare port> {{shared}}/tour/chrome.sh`, then
+  `DEMO_AUTO=1 TOUR_CDP=http://127.0.0.1:<port> node <script>`, then `chrome.sh stop` with the same
+  port.
+- **Layout.** The control window at the right edge of the screen and the app windows to its left, one
+  per role, desktop-sized, with only a pulsing ring on the element the next step uses. No phone or
+  dark windows: a demo doesn't need every device (`DEMO_DEVICES=1` brings them back, with screenshots
+  in both themes at 1440 + 360 px). One screenshot per failed or ✗ step, in `$EV`.
+- **Two clicks per step.** **▶ Do it** (or Enter) runs what the `Next:` line says. Then the control
+  window shows the script's own check as a green or red line above the step and asks **✓ Looks
+  right** / **✗ Not right**; a ✗ carries the person's words and a screenshot of that window. There is
+  no ←: the script can't undo a step. **✎ Note** (or N) records a remark; **No stops** runs the rest
+  of the part without stopping, **Stop** stops again (the notes `auto` and `pause` do the same). A
+  part ends with **▶ Go on to Part N**, the last one with **▶ Close the windows**.
+- **Run and follow.** Tell the person in a few lines how it works (the control window, the two clicks,
+  ✎ Note). Then run every part in scope in one background command, in order, one log per part, the
+  way `tour.md` §Runner runs the launcher (environment variables passed through it):
+  `for n in <parts>; do <runner> node {{shared}}/playbooks/<stem>/part-$n.mjs > $WS/part-$n.log 2>&1 || break; done`.
+  Set `DEMO_WS=$WS` and `DEMO_EV=$EV` when they aren't the defaults (`{{tmp}}/qa-<stem>/` and its
+  `evidence/`). Follow them with Monitor (`timeout_ms` 1800000, re-arm while it runs):
+  `tail -n +1 -F $WS/part-*.log | grep --line-buffered -E '"type":"(step|verdict|problem|mode|error|done|closed)"'`.
+  - Answer each event in one short line.
+  - `closed` means the person closed the control window: the run stopped there and the next parts
+    didn't start; ask whether to start again.
+  - An `error` line (an action that failed, with `url` and `shot`; `fatal` when the script itself
+    stopped) is traced read-only like any ❌. A ❌ that is the script's fault (a wrong check, not the
+    app) is 🟡: fix the part script for the next run.
+  - After each part, update `$RES` from its log: the script's marks, the person's verdicts, the notes.
+- **Restart.** The person may ask to start over at any time: stop the background command,
+  `pkill -f '{{shared}}/playbooks/<stem>/part-'` (SIGTERM: the scripts close their own windows; never
+  `-9`), put back what the parts already run changed (a read-only part changed nothing), and launch
+  again from the part they name.
+
+The *Demo ready* block:
+
+```
+## Demo ready — <playbook title> · up to Part <N>
+
+**State:** <one line: what the data shows now>
+**Sign in:** <each account of the playbook that exists now: its login and the surface's address; the passwords are in {{tmp}}/qa-<stem>/accounts.json, never printed>
+**Start at:** <2 to 4 host addresses of the records the run created>
+**Did not work:** <the ❌, ✗ and ⏭ blocked steps, and what data is missing because of them, or none>
+**Later:** go further with `/{{prefix}}:run-playbook <path> <M> demo` · test the same parts with `/{{prefix}}:run-playbook <path> <parts>` · put dev back: <the ledger lines kept (demo), with their undo>
+```
+
+{{/if}}
 ## Stage 0 — Resolve the playbook
 
 1. Take `$ARGUMENTS`:
    - **A number** → `ISSUE-<n>-TEST-PLAYBOOK.md`.
    - **A path** → that file.
+   - **A name** → the story playbook `{{shared}}/playbooks/<name>.md`.
    - **A trailing parts list** → keep it for Stage 2. It can be `2-4`, `1,3` or `failed`.
    - **`--real`** → the user already wants `$REAL=real`. Stage 2 skips its question; Stage 3 still
      confirms. When no part in scope is ☁️, say *"`--real` ignored: nothing in scope reaches a real
      service"* and use `local`.
 {{#if tour}}
    - **`--tour`** / **`--shots`** → `$TOUR`. Stage 2 skips its judging question.
+   - **`demo`** → `$MODE=demo` (§Demo mode).
 {{/if}}
 2. **Empty arguments.**
    - The branch matches `^issue-(\d+)-` → ask *"Run the playbook of issue #<n>?"* (**Yes**,
      **Another one**).
-   - It doesn't → `ls ISSUE-*-TEST-PLAYBOOK.md` and ask which.
+   - It doesn't → `ls ISSUE-*-TEST-PLAYBOOK.md {{shared}}/playbooks/*.md` and ask which.
 3. **No playbook** → ask **Write one now** or **Abort**.
    - Write → follow `test-playbook.md`, built from `git diff origin/{{base}}...HEAD`, the working tree
      and the issue's PRD. Then continue with Stage 1.
@@ -107,9 +196,12 @@ account, a third-party API with real side effects, a shared environment). A part
 ## Stage 1 — Preflight (read-only)
 
 1. **Branch.** If `git branch --show-current` isn't the issue's branch, warn that the playbook would
-   test code that isn't checked out. Ask **Continue** / **Abort**. Never switch branches.
-2. **Freshness.** Compare `git log --since="<playbook mtime>" --name-only --format=%h` with the files
-   and areas the playbook names. If they overlap, flag *"the playbook may be stale: N commits since it
+   test code that isn't checked out. Ask **Continue** / **Abort**. Never switch branches. A playbook
+   with no issue behind it (a story playbook, or any path with no `ISSUE-<n>-` prefix) runs on any
+   branch: name the branch and go on.
+2. **Freshness.** Take the playbook's date: its last commit (`git log -1 --format=%cI -- "$PB"`) when
+   it is tracked, else its mtime. Compare `git log --since="<that date>" --name-only --format=%h` with
+   the files and areas the playbook names. If they overlap, flag *"the playbook may be stale: N commits since it
    was written touch <areas>"*. Flag it, don't block. List the uncommitted changes too
    (`git status --short`).
 3. **Parse `$PB`.** For each part read:
@@ -176,7 +268,7 @@ the mail catcher) and Stage 0 didn't get `--tour` or `--shots`.
 > How do you want to judge the 👤 steps?
 
 - **Guided tour (Recommended)**: `$TOUR=tour`. At the end of each part with 👤 steps, browser
-  windows open already signed in on the page, with a panel: what to do, what you should see,
+  windows open already signed in on the page, beside a control window: what to do, what you should see,
   ✓ Looks right / ✗ Problem. I watch your answers live.
 - **Screenshots**: `$TOUR=shots`. I take them, print their paths and ask here.
 {{/if}}
@@ -272,7 +364,7 @@ A ⚠️ step gets a ✅ or ❌ like any other. Note in `$RES` whether its guess
 
 ### Guided tour of a part (`$TOUR=tour`)
 
-The person judges the part's 👤 steps on the real pages, signed in, guided by the panel
+The person judges the part's 👤 steps on the real pages, signed in, guided by the control window
 (`{{shared}}/guided-tour.md`). For each part with 👤 steps a browser can show:
 
 1. **Build the tour** `$WS/tour/part-<P>.json`:
@@ -499,7 +591,7 @@ first (`/{{prefix}}:start-working-on-issue <n>` reads the handoff).
 ## Stage 9 — Brief report
 
 Always last: after Stage 8, and after Stage 7 on an abort. Write
-`{{reports}}/<YYYY-MM-DD>-issue-<n>-qa.md` following `{{shared}}/brief-report.md`: the verdict, what
+`{{reports}}/<YYYY-MM-DD>-issue-<n>-qa.md` (a story playbook: `<file stem>-qa`{{#if tour}}; demo mode: `<file stem>-demo`{{/if}}) following `{{shared}}/brief-report.md`: the verdict, what
 works, the fixes, the open bugs and what wasn't exercised, whether dev is back, the next command. It
 is a summary of `$RES`, never a replacement: `$RES` stays the file a later run resumes from. Then
 print `Report: {{reports}}/<file>`.
@@ -512,7 +604,7 @@ Its sections are updated in place, and each later run appends a `## Session N (<
 ```markdown
 # Issue #<n> — QA results
 
-Playbook `<file>` · branch `<branch>` @ `<sha>` · run <date> · scope <parts> · real services <local | real> · judged by <tour | shots> · <committed / uncommitted fixes>
+Playbook `<file>` · branch `<branch>` @ `<sha>` · run <date>{{#if tour}} · mode <qa | demo>{{/if}} · scope <parts> · real services <local | real> · judged by <tour | shots> · <committed / uncommitted fixes>
 
 ## Verdict
 <one paragraph>

@@ -53,7 +53,7 @@ test('every template renders in every pack and host combination, with no placeho
         if (f.src.startsWith('shared/tour/')) continue
         assert.doesNotMatch(f.content, /\{\{[A-Za-z#/][^}]*\}\}/, `${f.src} (${host}, ${packs})`)
         if (!packs.includes('qa')) assert.doesNotMatch(f.content, /run-playbook|QA-RESULTS|test-playbook\.md/, `${f.src} leaks qa`)
-        if (!packs.includes('tour')) assert.doesNotMatch(f.content, /pr-tour|guided-tour|tour\.md/, `${f.src} leaks tour`)
+        if (!packs.includes('tour')) assert.doesNotMatch(f.content, /pr-tour|guided-tour|tour\.md|demo\.mjs|Demo mode|part-<N>\.mjs/, `${f.src} leaks tour`)
         if (host === 'gitlab') assert.doesNotMatch(f.content, /\bgh (pr|issue|api|run|label|release|repo|auth)\b/, `${f.src} leaks gh`)
       }
       const dests = files.map((f) => f.dest)
@@ -235,4 +235,26 @@ test('scripts keep their mode', () => {
   assert.equal(files.find((f) => f.src === 'shared/tour/chrome.sh').mode, '755')
   apply(root, { ...CFG, packs: ['core', 'qa', 'tour'] }, KIT)
   assert.ok(fs.statSync(path.join(root, '.claude/p-shared/tour/chrome.sh')).mode & 0o100)
+})
+
+test('the tour scripts parse, and every script they import is generated next to them', () => {
+  const { files } = renderAll({ ...CFG, packs: ['core', 'qa', 'tour'] }, KIT)
+  const tour = files.filter((f) => f.src.startsWith('shared/tour/'))
+  const names = new Set(tour.map((f) => path.basename(f.dest)))
+  for (const f of tour.filter((x) => /\.(mjs|js)$/.test(x.src))) {
+    execFileSync(process.execPath, ['--check', path.join(KIT, 'templates', f.src)])
+    for (const [, name] of f.content.matchAll(/from '\.\/([^']+)'/g)) assert.ok(names.has(name), `${f.src} imports ./${name}`)
+    for (const [, name] of f.content.matchAll(/join\(HERE, '([^']+\.(?:js|mjs|sh))'\)/g)) assert.ok(names.has(name), `${f.src} reads ${name}`)
+  }
+  for (const name of ['open.mjs', 'demo.mjs', 'tour-control.mjs', 'surfaces.mjs', 'tour-panel.js', 'chrome.sh']) assert.ok(names.has(name), name)
+})
+
+test('the panel knows the three modes the scripts ask for', () => {
+  const panel = fs.readFileSync(path.join(KIT, 'templates/shared/tour/tour-panel.js'), 'utf8')
+  const control = fs.readFileSync(path.join(KIT, 'templates/shared/tour/tour-control.mjs'), 'utf8')
+  for (const mode of ['docked', 'ring']) {
+    assert.match(control, new RegExp(`__tourMode = '${mode}'`))
+    assert.match(panel, new RegExp(`mode === '${mode}'`))
+  }
+  assert.match(panel, /__tourMode \?\? 'overlay'/)
 })

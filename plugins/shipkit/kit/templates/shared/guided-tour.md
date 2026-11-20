@@ -6,11 +6,17 @@ A short walk through what a change does, for a person to see it working on the d
 playbook steps) and what changed. Single agent, no sub-agents.
 
 The person only looks and clicks. You do the setup, open the windows already signed in, and guide
-them through a panel inside the browser: your status line, the current step (one action, one "✓ what
-you should see"), a pulsing outline on the element the step talks about, the step list, and **✓ Looks
-right** / **✗ Problem** buttons that you watch live. They can drag the panel by its header (or
-collapse it to a pill) when it covers something; a double-click on the header puts it back in its
-corner. The terminal gets a short copy.
+them through a **control window**: a narrow browser window at the right edge of the screen with the
+tour panel (your status line, the current step and the window it happens in, one action and one
+"what you should see", **✓ Looks right** / **✗ Problem** buttons that you watch live, the step list).
+The app windows fill the space to its left and stay clean: only a pulsing ring around the element
+the current step names. When a step moves to another window, that window comes forward. In the
+control window, Enter or → confirms, ← goes back and N opens the ✗ form. The terminal gets a short
+copy.
+
+`--panel overlay` puts the floating panel on every app page instead (draggable by its header,
+collapsible to a pill, a double-click on the header puts it back in its corner): for one small screen
+where a control window beside the app doesn't fit.
 
 The project's side of it is `tour.md`: its surfaces (where each app lives and how a window signs in),
 its account kinds, how the launcher runs, and what needs a build first.
@@ -20,8 +26,11 @@ its account kinds, how the launcher runs, and what needs a build first.
 | Piece | Runs | What |
 |---|---|---|
 | `tour/chrome.sh` | **host** (bash) | Starts a separate Chromium-family browser with its own empty profile (`{{tmp}}/tour-chrome/`, ignored by git) and the DevTools port on `127.0.0.1:9222`. `stop` quits only that browser |
-| `tour/open.mjs` | where `tour.md` §Runner says (the host, or a container) | Connects to that browser over the DevTools port, opens one window per account, signs in with the surface recipe of `tour/surfaces.json`, injects the panel, watches the tour file, appends the answers to the log |
-| `tour/tour-panel.js` | the pages | The panel |
+| `tour/open.mjs` | where `tour.md` §Runner says (the host, or a container) | Connects to that browser over the DevTools port, opens the control window and one window per account, signs in with the surface recipe of `tour/surfaces.json`, puts the ring on the app pages, watches the tour file, appends the answers to the log |
+| `tour/tour-control.mjs` | imported by the two scripts | The DevTools connection, the control window, where each window goes on the screen, the ring |
+| `tour/surfaces.mjs` | imported by the two scripts | The sign-in recipes of `tour/surfaces.json` and the accounts file |
+| `tour/tour-panel.js` | the pages | The panel: the control window (`docked`), the ring on the app pages (`ring`), or the floating panel (`--panel overlay`) |
+| `tour/demo.mjs` | as `open.mjs` | The guided demo engine: `/{{prefix}}:run-playbook`'s demo mode drives a playbook's parts through it, in the same control window |
 
 What follows from it:
 
@@ -128,18 +137,21 @@ Only what the change does: one step per behaviour, 8 steps at most (more: a seco
 }
 ```
 
-- **Top level.** `title`; `status` (your line at the top of the panel, free text); `state` (`ready`
-  green, `working` amber and blinking, `done`); `current` (1-based: **changing** it moves every
-  window to that step and clears its mark); `accounts` and `shots` (paths from the repo root: the
-  accounts file, and the folder for the problem screenshots, by default next to the tour file).
-- **windows[]** (read once, at the start): `name` (the tag the panel shows), `surface` (a key of
+- **Top level.** `title`; `status` (your line above the buttons, free text); `state` (`ready`;
+  `working`: a spinner, and ✓ / ✗ wait; `done`); `current` (1-based: **changing** it moves the tour
+  to that step, brings its window forward and clears its mark); `accounts` and `shots` (paths from
+  the repo root: the accounts file, and the folder for the problem screenshots, by default next to
+  the tour file); optional `i18n` (the control window's own words in the product's language,
+  `project.md` §Language: the keys of `words` in `tour/tour-panel.js`).
+- **windows[]** (read once, at the start): `name` (the tag the control window shows on each step), `surface` (a key of
   `tour/surfaces.json`: gives the base address and the sign-in recipe), `login` (an account of that
   surface, signed in first; none → a public page), `paths` (tabs: relative to the base, or whole
   `http(s)` addresses), optional `base` (overrides the surface's), `mobile` (360 px, touch), `dark`.
 - **steps[]**: `do` (one action) and `see` (what proves it works), one short line each. Optional:
-  `window` (where it happens; the other windows say "do this one in …"), `highlight` (the visible
-  text of the element to outline, or `css=<selector>`; nothing inside a frame), `path` (adds a "Go
-  to" button: a path on the page's own site, or a whole address on another one).
+  `window` (where it happens: the control window names it, brings that window forward and rings the
+  element only there), `highlight` (the visible text of the element to ring, or `css=<selector>`;
+  nothing inside a frame), `path` (adds a "Go to" button that opens it in the step's window: a path
+  on that window's site, or a whole address on another one).
 - **No secrets in the file.** Passwords stay in the accounts file. A path that carries a token may go
   in `paths` or `path`, because the file is local and ignored; it never goes in the terminal copy,
   `ISSUE-<n>-QA-RESULTS.md`, a report or {{a_PR}}.
@@ -149,7 +161,7 @@ Only what the change does: one step per behaviour, 8 steps at most (more: a seco
 ```bash
 {{shared}}/tour/chrome.sh                      # on the host; reuses the one already up
 rm -f <ws>/tour/<name>.log
-<tour.md §Runner: the launch command> --tour <ws>/tour/<name>.json
+<tour.md §Runner: the launch command> --tour <ws>/tour/<name>.json      # + --panel overlay on one small screen
 ```
 
 Run the last line with Bash `run_in_background`. One tour at a time: `tour.md` §Runner's stop
@@ -172,15 +184,16 @@ tail -n +1 -F <ws>/tour/<name>.log | grep --line-buffered -E '"type":"(ok|proble
 ```
 
 Every event is one JSON line: `step` is 1-based, `window`, `url`; a `problem` also has `text` and
-`shot` (a screenshot of that page as the person saw it, without the panel; a path from the repo
-root).
+`shot` (a screenshot of the step's window as the person saw it, without the ring; a path from the
+repo root). `closed` has `why`: `control` (the person closed the control window: that ends the
+tour), `windows` (every app window closed), `browser` or `stopped`.
 
 ## 4. Print the short copy
 
 Right after `ready`, in the terminal:
 
 ```
-## Tour: #<n> · <title>   (the panel in the browser guides you)
+## Tour: #<n> · <title>   (the control window on the right guides you)
 1. [Member, phone] Open an item, change its title, tap `…`. ✓ <what the page says>
 2. [Admin] Open the activity log. ✓ the change, with the member's name
 Done: close the windows.
@@ -190,7 +203,7 @@ One line per step. No explanations, no setup steps, no addresses with a token.
 
 ## 5. React to the events
 
-- **ok**: nothing to say; the panel moves on by itself. The caller may record it.
+- **ok**: nothing to say; the control window moves on by itself. The caller may record it.
 - **problem**: Read the `shot` (from the repo root) and the `text`. Edit the tour file at once:
   `"status": "Looking at step N…"`, `"state": "working"`. Trace it read-only to `file:line`, with
   the owning doc (`routing-tables.md` §Doc mapping), and tell the user in two lines what is wrong,
@@ -204,8 +217,8 @@ One line per step. No explanations, no setup steps, no addresses with a token.
   A fix follows the hard rules (`project.md`, CLAUDE.md) and the owning doc, gets a test that fails
   first, and passes `local-gate.md` §Gate on the touched files. Never edit code a running background
   job depends on. A front-end fix may need a new build (`tour.md` §Build). Then set
-  `"status": "Fixed: <one line>. Check step N again."`, `"state": "ready"` and `"current": N`: every
-  window goes back to that step and clears its mark. No fix: `"status": "Noted: <one line>"`,
+  `"status": "Fixed: <one line>. Check step N again."`, `"state": "ready"` and `"current": N`: the
+  control window goes back to that step, clears its mark and brings its window forward. No fix: `"status": "Noted: <one line>"`,
   `"state": "ready"`.
 - **done**: one line in the terminal; set `"state": "done"`, `"status": "All checked"`.
 - **closed**: stop the Monitor (TaskStop). Summarize in at most three lines: the steps that passed,
@@ -225,12 +238,23 @@ One line per step. No explanations, no setup steps, no addresses with a token.
 
 ## Gotchas
 
-- **The panel comes after the sign-in.** On a phone the panel is a bottom sheet; injected earlier it
-  would cover the sign-in button.
+- **The control window** is a browser context of its own on a fake address (`http://tour.control/`,
+  answered by the launcher, never the network), with no colour emulation: it follows the system's
+  light or dark. Chrome keeps a minimum window width (about 500 px): the launcher reads the width it
+  really got and leaves the rest of the screen to the app windows.
+- **Window layout:** desktop windows fill the space left of the control window, a little staggered;
+  phone windows keep 420 px at its right edge, beside the desktops when at least 1024 px are left for
+  them, else on top (the step's window comes forward). Extra tabs and popups of a window go to the
+  same place. Headless, nothing is placed.
+- **Keys in the control window:** Enter or → is ✓, ← goes back, N opens the ✗ form (Esc closes it,
+  ⌘/Ctrl Enter sends it). A focused button keeps its own Enter. After ✓ or ←, the keyboard comes back
+  to the control window.
+- **The ring (or the overlay panel) comes after the sign-in.** On a phone the overlay panel is a
+  bottom sheet; injected earlier it would cover the sign-in button.
 - **Double-click guard.** The panel sends the step it showed with `ok`; the launcher drops an `ok`
   for a step that is no longer current. **After-done guard:** once done the panel hides ✓ / ✗ and the
   launcher ignores further `ok`.
-- **Screenshots without the panel:** `__tourHide(true)`, shoot, `__tourHide(false)`.
+- **Screenshots without the ring or panel:** `__tourHide(true)`, shoot, `__tourHide(false)`.
 - **Shadow root on `<html>`, outside `<body>`:** the app's styles don't leak in, the panel is not in
   `document.body.innerText`, and a re-render can't remove it (it re-appends itself).
 - **Its own palette,** light or dark like the page (`data-theme` on `<html>`, else the system's).
@@ -241,10 +265,13 @@ One line per step. No explanations, no setup steps, no addresses with a token.
 - **SPA navigation keeps the panel;** a full page load re-injects it, and it fetches its state with
   `__tourGet()` (it waits up to 5 s for the binding).
 - **Typing survives re-renders:** a status update mid-typing keeps the textarea's draft.
-- **Dragging:** by the header or the pill; 4 px separate a click from a drag, the click after a drag
+- **Dragging** (overlay only): by the header or the pill; 4 px separate a click from a drag, the click after a drag
   is swallowed, the position is clamped on screen and kept in `sessionStorage` (per tab), a
   double-click on the header (or ⇄) snaps it back to a corner.
-- **The panel is read at launch:** a change to `tour-panel.js` needs a new run.
+- **The panel is read at launch:** a change to `tour-panel.js` (or `tour-control.mjs`) needs a new run.
+- **Connected, not launched.** The windows live in the host's browser, not in a child process: the
+  launcher and `demo.mjs` close their own windows on exit and on SIGTERM (`pkill -f <script>`), never
+  `kill -9` them, or the windows stay open.
 - **A half-written tour file** is ignored; the next change brings a whole one.
 - **The DevTools port answers only a `Host` that is an IP address or `localhost`:** `open.mjs`
   resolves a name like `host.docker.internal` to its IPv4 address first.
