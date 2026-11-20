@@ -1,5 +1,5 @@
 {
-  "version": "0.1.0",
+  "version": "0.2.0",
   "profile": {
     "core": [
       "project.md",
@@ -217,6 +217,24 @@
     {
       "src": "shared/tour/tour-panel.js",
       "dest": "{{shared}}/tour/tour-panel.js",
+      "pack": "tour",
+      "raw": true
+    },
+    {
+      "src": "shared/tour/tour-control.mjs",
+      "dest": "{{shared}}/tour/tour-control.mjs",
+      "pack": "tour",
+      "raw": true
+    },
+    {
+      "src": "shared/tour/surfaces.mjs",
+      "dest": "{{shared}}/tour/surfaces.mjs",
+      "pack": "tour",
+      "raw": true
+    },
+    {
+      "src": "shared/tour/demo.mjs",
+      "dest": "{{shared}}/tour/demo.mjs",
       "pack": "tour",
       "raw": true
     }

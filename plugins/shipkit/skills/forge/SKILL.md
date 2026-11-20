@@ -23,12 +23,14 @@ Read `scan.md` (next to this file) and `$KIT/profile/GUIDE.md` before Stage 1.
 .claude/<prefix>-shared/              templates' shared files + the profile (project-owned):
     project.md routing-tables.md local-gate.md review-rules.md upgrade-steps.md [tour.md tour/surfaces.json]
     shipkit.json                      choices + a hash of every generated file
+    playbooks/                        story playbooks (project-owned, never generated: forge leaves them alone)
 ```
 
 Packs: **core** (24 commands: PRD → issue → implement → PR/MR → checks → pre-merge review → ship,
 the staged/branch reviews, changelog, docs sync, migrations, tag-release, audit-deps, clear),
-**qa** (`run-playbook`, the test-playbook format), **tour** (`pr-tour`, guided tours in a real
-browser; needs qa and a web UI).
+**qa** (`run-playbook`, the test-playbook format, story playbooks), **tour** (`pr-tour`, guided
+tours in a real browser with a control window beside the app, and `run-playbook … demo`, a guided
+demo of a story playbook; needs qa and a web UI).
 
 Modes: **committed** (normal files; the scratch output — `.claude/.tmp/`, `reports/`, review
 reports, `ISSUE-*` notes — is added to `.gitignore`), **hidden** (everything listed in

@@ -16,6 +16,24 @@ The file is local and untracked: never stage or commit it. It reaches the {{PR}}
 comment (`pr-notes.md`), so a reviewer can follow it too. Announce the file name before writing it.
 If it already exists, ask **Overwrite** / **Keep it**.
 
+### Story playbooks
+
+The one exception: a **story playbook** follows one realistic flow across the whole product (a
+customer from the first contact to the invoice), not one issue. `/{{prefix}}:run-playbook <name>` runs
+it as QA{{#if tour}}, and `/{{prefix}}:run-playbook <name> <N> demo` builds its data up to Part N in a guided
+browser, to show the product (run-playbook §Demo mode){{/if}}.
+
+- **Where.** `{{shared}}/playbooks/<name>.md`, its sample files (documents, imports, images) in
+  `{{shared}}/playbooks/samples/`{{#if tour}}, its guided part scripts in
+  `{{shared}}/playbooks/<name>/part-<N>.mjs`{{/if}}.
+  They belong to the project: committed with the toolkit in committed mode, local in hidden mode.
+  Change one in its own {{PR}}, after a run that confirmed the steps.
+- **Same format,** with Part 0 and *Put dev back*. Its parts build on each other, so its intro says
+  which part needs which, and each part's ids and codes are Variables the later parts read.
+- **Fake data only.** Every person, company, address, email and phone number is invented and marked
+  as such (`example.test`, `(example)`). No secret, token or real identity.
+- ***Put dev back*** {{#if tour}}says what demo mode keeps (the story's data) and {{/if}}undoes the rest.
+
 ## 1. What it covers
 
 - **Scope.** Cover what the branch actually changes (`git diff origin/{{base}}...HEAD` plus the
@@ -164,7 +182,7 @@ Needs: Part 0, Part 3.
 - **Steps:** at most 8, one per user-visible behaviour (the PRD's Acceptance criteria / Verification),
   in the order a person meets them. *Do* is one action, *See* what proves it works, both one short
   line. *Outline* (optional) is the visible text of the element the step talks about, or
-  `css=<selector>`; *Page* (optional) is where it happens, for the panel's "Go to" button.
+  `css=<selector>`; *Page* (optional) is where it happens, for the control window's "Go to" button.
 - **Windows** by role, never by account: *Account* is one of the account kinds in `tour.md`
   §Accounts (`<surface> <role>`), or `none` (a public page). *Opens* is a path on that surface, or a
   whole `http://localhost:<port>` address (the tour's browser runs on the host: `tour.md`

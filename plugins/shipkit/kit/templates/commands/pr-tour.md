@@ -1,5 +1,5 @@
 ---
-description: 🧭 TOUR — Guided tour of what {{a_PR}} (or the current branch) changed. Browser windows open already signed in on the dev stack, with an in-page panel of at most 8 one-line steps and ✓ Looks right / ✗ Problem buttons the agent reacts to live; fixes the problems you pick
+description: 🧭 TOUR — Guided tour of what {{a_PR}} (or the current branch) changed. Browser windows open already signed in on the dev stack, beside a control window of at most 8 one-line steps (a ring on the element each step names, ✓ Looks right / ✗ Problem buttons the agent reacts to live); fixes the problems you pick
 argument-hint: "[pr-number]"
 ---
 
@@ -84,8 +84,9 @@ Follow `guided-tour.md` §1. Made only when a window needs it:
 ## 5. Tour
 
 Follow `guided-tour.md` §2–§5: write `$WS/tour/pr-<PR>.json` (`"accounts": "$WS/accounts.json"`,
-`"shots": "$WS/tour"`), open the windows signed in (`chrome.sh`, then the launcher in the
-background), print the short copy, watch the ✓ / ✗ answers with Monitor and react to each event.
+`"shots": "$WS/tour"`), open the windows signed in with the control window beside them
+(`chrome.sh`, then the launcher in the background), print the short copy, watch the ✓ / ✗ answers
+with Monitor and react to each event.
 
 A reported problem: trace it read-only, report it in two lines, then ask **Fix it here** / **Just
 note it**.

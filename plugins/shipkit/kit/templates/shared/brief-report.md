@@ -16,7 +16,7 @@ points at them.
   |---|---|
   | `start-working-on-issue` | `issue-<n>-work` |
 {{#if qa}}
-  | `run-playbook` | `issue-<n>-qa` (a playbook without an issue number: its file stem, lowercased) |
+  | `run-playbook` | `issue-<n>-qa` (a playbook without an issue number: its file stem, lowercased{{#if tour}}; in demo mode, `<file stem>-demo`{{/if}}) |
 {{/if}}
   | `start-pre-merge-review` | `pre-merge-<branch>` (`/` in the branch becomes `-`) |
   | `plan-to-prd` | `prd-<slug>` (the PRD's slug) |
@@ -77,7 +77,7 @@ Verdict mark: ✅ done / all good · ⚠️ done, with caveats · ⛔ blocked or
 |---|---|---|---|---|---|---|
 | `start-working-on-issue` | `Issue #<n> — <title>` | scope complete or not; tests green; committed / held for review | the scope items finished this session, as outcomes (plus docs updated, in one bullet) | unfinished items, verification still owed, open questions, dev data or `.env` to revert | {{#if qa}}the playbook run, {{/if}}the pre-merge review, the {{PR}} | PRD, handoff, {{#if qa}}playbook, {{/if}}branch, commit count |
 {{#if qa}}
-| `run-playbook` | `Issue #<n> — QA run` | the verdict (works as specified / with caveats / blocking bugs) | what was confirmed to work, the fixes applied (each with its commit or "uncommitted"), playbook corrections in one bullet | open bugs, what wasn't exercised and why, parts skipped, anything not put back on dev | fix the open bugs, or the pre-merge review and ship | QA results file, evidence folder, branch @ sha |
+| `run-playbook` | `Issue #<n> — QA run`{{#if tour}} (demo mode: `<file stem> — demo data`){{/if}} | the verdict (works as specified / with caveats / blocking bugs){{#if tour}}; in demo mode, the part the data reached{{/if}} | what was confirmed to work, the fixes applied (each with its commit or "uncommitted"), playbook corrections in one bullet | open bugs, what wasn't exercised and why, parts skipped, anything not put back on dev | fix the open bugs, or the pre-merge review and ship | QA results file, evidence folder, branch @ sha |
 {{/if}}
 | `start-pre-merge-review` | `Pre-merge review — <branch>` | the overall verdict (✅ ready, ⚠️ ready with comments, ⛔ not ready; a PRD item left undone counts toward it) and the one reason why not | what the reviews confirmed, fixes applied, docs brought in line, no / some upgrade steps | warnings worth fixing before merge, test gaps, PRD items not done or only partly done, uncommitted edits (not on the {{PR}} until pushed), where a gate halted | commit and push the edits, then `/{{prefix}}:ship` (or the re-run after a halt) | `PRE-MERGE-REVIEW-REPORT.md`, changelog, {{PR}} comment URL, {{PR}} / issue |
 | `plan-to-prd` | `PRD — <title>` | the feature in one sentence, and the PRD's state (written / issue opened) | the key decisions: goals, what's out of scope, the phases | open questions, conflicts raised with the project's decisions or hard rules, owner-only steps | `/{{prefix}}:start-working-on-issue <n>` on branch `issue-<n>-<slug>`, or create the issue | PRD path, issue URL |

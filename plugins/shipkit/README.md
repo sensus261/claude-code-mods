@@ -36,9 +36,11 @@ Needs Node ≥ 18 (the renderer) and `gh` or `glab` signed in (the PR / MR comma
   (`.claude/.tmp/`, `reports/`, the review reports, `ISSUE-*` notes) goes in `.gitignore`. Hidden:
   everything is listed in `.git/info/exclude`, so nothing in the repo changes and the toolkit stays on
   your machine.
-- **Packs.** `core` (24 commands), `qa` (+ `run-playbook` and the test-playbook format), `tour` (+
-  `pr-tour` and guided tours: browser windows open already signed in, with a ✓ / ✗ panel the agent
-  watches live; for web apps).
+- **Packs.** `core` (24 commands), `qa` (+ `run-playbook`, the test-playbook format and story
+  playbooks), `tour` (+ `pr-tour` and guided tours: app windows open already signed in, beside a
+  control window at the right edge of the screen with the steps and ✓ / ✗ buttons the agent watches
+  live, and a ring on the element each step names; plus `run-playbook … demo`, which builds a story
+  playbook's data up to a part in that guided browser and keeps it, to show the app; for web apps).
 - **Git host.** GitHub (`gh`) or GitLab, self-hosted included (`glab`). Every host call goes through
   named recipes in one file, `host.md`, so the commands read the same on both.
 
@@ -51,8 +53,8 @@ Needs Node ≥ 18 (the renderer) and `gh` or `glab` signed in (the PR / MR comma
 | Branch (pre-merge) | `start-pre-merge-review` → `analyze-changes-branch`, `code-review-branch`, `review-tests-branch`, `update-docs-branch`, `check-migrations-branch`, `changelog-branch` |
 | PR / MR | `open-pr`, `pr-checks`, `pr-review-feedback`, `ship` |
 | Upkeep | `update-docs-all`, `audit-deps`, `tag-release`, `clear` |
-| QA *(qa)* | `run-playbook` |
-| Tour *(tour)* | `pr-tour` |
+| QA *(qa)* | `run-playbook` (an issue's playbook, or a story playbook from `<shared>/playbooks/`) |
+| Tour *(tour)* | `pr-tour`, and `run-playbook … demo` (a guided demo of a story playbook) |
 
 They never commit, push or post without asking, and a commit rule in your CLAUDE.md always wins.
 
@@ -65,7 +67,9 @@ plugins/shipkit/
   kit/render.mjs             the renderer (no dependencies)  kit/render.test.mjs    its tests
   kit/manifest.json          template → destination, pack, host; the profile files per pack
   kit/templates/commands/    one file per command
-  kit/templates/shared/      host recipes, PR description and notes, reports, checklists, playbook, tour (+ scripts)
+  kit/templates/shared/      host recipes, PR description and notes, reports, checklists, playbook, tour
+  kit/templates/shared/tour/ chrome.sh, open.mjs (a tour), demo.mjs (a guided demo), tour-control.mjs
+                             (control window, layout, ring), surfaces.mjs (sign-in), tour-panel.js
   kit/profile/GUIDE.md       what each profile file holds
 ```
 
@@ -76,6 +80,7 @@ In a project:
 .claude/<prefix>-shared/            generated shared files + the profile (yours):
     project.md  routing-tables.md  local-gate.md  review-rules.md  upgrade-steps.md  [tour.md  tour/surfaces.json]
     shipkit.json                    your choices + a hash of every generated file
+    playbooks/                      story playbooks (yours): <name>.md, samples/, <name>/part-<N>.mjs
 ```
 
 The merge bases for future upgrades are kept under the repo's git dir (`.git/shipkit/`), never

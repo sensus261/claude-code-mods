@@ -91,7 +91,7 @@ config changes, and the other sections say `None.`
 |---|---|
 | `## Surfaces` | `| Surface | Host address | Signs in with | Shows changes in |`: each app a tour window can open (a key of `tour/surfaces.json`), its address **on the host** (the tour browser runs there), the account kind, and the source folders whose changes it shows. Plus pages with no account (a mail catcher, a public site) |
 | `## Accounts` | Per account kind (`<surface> <role>`): how to create a throwaway one, set its password from a script, enable / reset it, disable it. Fake identifiers only. Where the roles are defined |
-| `## Runner` | The launch command (`node .claude/<prefix>-shared/tour/open.mjs`, or the container form, e.g. `docker compose run --rm -T --name <prefix>-tour toolbox node …`), the stop command (`docker stop <prefix>-tour`, or TaskStop of the background task), where Playwright resolves (`--playwright <dir>` when it isn't the repo root) and how to install it once |
+| `## Runner` | The launch command (`node .claude/<prefix>-shared/tour/open.mjs`, or the container form, e.g. `docker compose run --rm -T --name <prefix>-tour toolbox node …`), the stop command (`docker stop <prefix>-tour`, or TaskStop of the background task; never a kill that skips the script's exit, which closes its windows), where Playwright resolves (`--playwright <dir>` / `TOUR_PLAYWRIGHT` when it isn't the repo root) and how to install it once. Demo part scripts (`playbooks/<name>/part-<N>.mjs`) run the same way, with `DEMO_*` / `TOUR_*` environment variables passed through |
 | `## Build` | What must be built or restarted before a tour shows a change (a front-end bundle, a dev server to start instead) |
 | `## Gotchas` | The project's own (a cookie for the UI language, a slow first build) |
 
