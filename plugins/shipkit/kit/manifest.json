@@ -1,5 +1,5 @@
 {
-  "version": "0.2.0",
+  "version": "0.3.0",
   "profile": {
     "core": [
       "project.md",
@@ -10,7 +10,8 @@
     ],
     "tour": [
       "tour.md",
-      "tour/surfaces.json"
+      "tour/surfaces.json",
+      "tour/runner.json"
     ]
   },
   "templates": [
@@ -235,6 +236,32 @@
     {
       "src": "shared/tour/demo.mjs",
       "dest": "{{shared}}/tour/demo.mjs",
+      "pack": "tour",
+      "raw": true
+    },
+    {
+      "src": "shared/tour/tour.mjs",
+      "dest": "{{shared}}/tour/tour.mjs",
+      "pack": "tour",
+      "raw": true,
+      "mode": "755"
+    },
+    {
+      "src": "shared/tour/present.mjs",
+      "dest": "{{shared}}/tour/present.mjs",
+      "pack": "tour",
+      "raw": true,
+      "mode": "755"
+    },
+    {
+      "src": "shared/tour/stack.mjs",
+      "dest": "{{shared}}/tour/stack.mjs",
+      "pack": "tour",
+      "raw": true
+    },
+    {
+      "src": "shared/tour/tour-file.mjs",
+      "dest": "{{shared}}/tour/tour-file.mjs",
       "pack": "tour",
       "raw": true
     }

@@ -50,6 +50,9 @@ Closes #<n>
 {{#if qa}}
 - [ ] `/{{prefix}}:run-playbook <n>`{{#if tour}} or `/{{prefix}}:pr-tour`{{/if}} (when there is something to see)
 {{/if}}
+{{#if tour}}
+- [ ] A committed tour, when the change has one: `node {{shared}}/tour/tour.mjs <ID>` (no agent needed; its steps are in the guided-tour block below)
+{{/if}}
 
 ## Upgrade notes
 

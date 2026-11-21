@@ -75,6 +75,9 @@ the roadmap and gotchas live.
 | queues and schedulers (celery, sidekiq, bull, horizon, prefect, temporal) | how to see jobs in flight; the "don't edit while a job runs" quirk |
 | login routes and forms (`grep -rn "login\|signin\|sign-in" --include=*.{tsx,vue,svelte,html,twig,blade.php,erb,py,ts} <src>`), auth middleware, roles / permissions enums, user-creation commands (CLI, seeders, factories, admin scripts) | the surfaces' sign-in recipes, the account kinds and roles, how to make a throwaway account |
 | `@playwright/test` / `playwright` in any `package.json` | where Playwright resolves (tour runner, browser scripts) |
+| the command that says the stack is up (`docker compose ps`, `sail ps`), the dev server's client URL (`/@vite/client`, `/_next/static`), a `public/hot` file, the migration status command (`migrate:status --pending`, `showmigrations --plan`, `alembic current`, `prisma migrate status`), a worker restart (`queue:restart`, a supervisor reload) | `tour/runner.json` `preflight` (tour pack) |
+| seeders and factories (`database/seeders/`, `factories/`, `fixtures/`, `seeds.rb`, `seed.ts`), a framework's own command registry (artisan, `manage.py`, rake, a `bin/` CLI) | where tour fixtures would live and their entry point (`tour.md` §Data, `runner.json` `prepare`) |
+| `.claude/tours/`, `<shared>/tours/`, or JSON tours in PR / MR description blocks (`<!-- …:guided-tour -->`) | committed tours already there (tour pack) |
 | `.env.example` keys like `STRIPE_*`, `AWS_*`, `CLOUDFLARE_*`, `SENDGRID_*`, `TWILIO_*`, `OPENAI_*`, `*_API_KEY`, `*_TOKEN`, and a test-mode switch for sends | the ☁️ list, its keys (names only), the test mode |
 
 A project with no UI (a library, a CLI, an API only) → recommend the qa pack without tour, or core
