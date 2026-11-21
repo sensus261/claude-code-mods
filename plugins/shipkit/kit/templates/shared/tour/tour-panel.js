@@ -2,7 +2,8 @@
 // before this script runs:
 // - "docked" (the default of `open.mjs --tour` and of `demo.mjs`): the panel fills its own control
 //   window at the right edge of the screen (tour-control.mjs, next to this file);
-// - "ring": on the app pages beside it, only the pulsing ring around the element the current step names;
+// - "ring": on the app pages beside it, only the pulsing ring around the element the current step names
+//   (and, in a demo, the pointer, the field being filled and the amber ring on the step's result);
 // - "overlay" (`open.mjs --panel overlay`): the panel floats on every app page, draggable.
 // It lives in a shadow root on <html>, outside <body>, so it neither inherits the page's styles nor
 // shows up in the page text. It goes on every surface the project has (an app, a public site, a mail
@@ -98,6 +99,15 @@ header, .pill { cursor: grab; touch-action: none; user-select: none; }
 .ring { position: fixed; z-index: 2147483646; pointer-events: none; display: none;
     border: 3px solid var(--tour); border-radius: 8px; animation: pulse 1.2s ease-in-out infinite; }
 @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgb(124 58 237 / .5); } 50% { box-shadow: 0 0 0 8px rgb(124 58 237 / 0); } }
+.look { position: fixed; z-index: 2147483645; pointer-events: none; display: none;
+    border: 3px solid #f59e0b; border-radius: 8px; box-shadow: 0 0 0 5px rgb(245 158 11 / .28); }
+.glow { position: fixed; z-index: 2147483645; pointer-events: none; display: none; border-radius: 8px;
+    box-shadow: 0 0 0 3px var(--tour), 0 0 18px 4px rgb(124 58 237 / .45); }
+.cursor { position: fixed; z-index: 2147483647; pointer-events: none; display: none; width: 30px; height: 30px;
+    margin: -2.5px 0 0 -5px; filter: drop-shadow(0 2px 3px rgb(0 0 0 / .45)); }
+.ripple { position: fixed; z-index: 2147483646; pointer-events: none; width: 46px; height: 46px;
+    margin: -23px 0 0 -23px; border-radius: 50%; border: 3px solid var(--tour); animation: ripple .6s ease-out forwards; }
+@keyframes ripple { from { transform: scale(.3); opacity: 1; } to { transform: scale(1.4); opacity: 0; } }
 @media (max-width: 480px) {
     .panel, .panel.left { left: 8px; right: 8px; bottom: 8px; width: auto; max-height: 48vh; }
     .panel.collapsed { left: auto; right: 8px; }
@@ -268,6 +278,14 @@ code { font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; background: va
     let host;
     let panel;
     let ring;
+    // What a demo draws for its viewer (demo.mjs): the result's ring, the field being typed into, the
+    // pointer and its click ripple. A tour sets none of them.
+    let look;
+    let glow;
+    let cursor;
+    let effects;
+    const CURSOR =
+        '<svg viewBox="0 0 24 24" width="30" height="30"><path d="M4 2v18l5-4.5 3.5 7.5 3-1.4-3.5-7.3H19z" fill="#111" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>';
 
     const esc = (text) =>
         String(text ?? '').replace(
@@ -343,8 +361,12 @@ code { font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; background: va
             root.adoptedStyleSheets = [sheet];
             root.innerHTML = docked
                 ? '<section class="cw"></section>'
-                : `<div class="ring"></div>${ringOnly ? '' : '<section class="panel"></section>'}`;
+                : `<div class="ring"></div><div class="look"></div><div class="glow"></div><div class="cursor">${CURSOR}</div>${ringOnly ? '' : '<section class="panel"></section>'}`;
             ring = root.querySelector('.ring');
+            look = root.querySelector('.look');
+            glow = root.querySelector('.glow');
+            cursor = root.querySelector('.cursor');
+            effects = root;
             panel = root.querySelector('.panel, .cw');
 
             if (panel) {
@@ -399,6 +421,8 @@ code { font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; background: va
         mount();
 
         if (ringOnly) {
+            track();
+
             return;
         }
 
@@ -852,6 +876,78 @@ ${ending ? '' : `<div class="row"><button class="btn ghost" data-act="problem">$
         return null;
     }
 
+    // A demo's own marks are for the window its step happens in.
+    const here = (win) => !win || !state?.me || win === state.me;
+    const box = (el, r, pad) =>
+        Object.assign(el.style, {
+            display: 'block',
+            top: `${r.top - pad}px`,
+            left: `${r.left - pad}px`,
+            width: `${r.width + pad * 2}px`,
+            height: `${r.height + pad * 2}px`,
+        });
+    let lookTarget = null;
+    let lookKey = '';
+    let lookAt = 0;
+    let lookScrolled = '';
+    let typing = null;
+
+    // The result of the step that just ran: an amber ring, scrolled into view once.
+    function trackLook() {
+        const spec = state?.look?.spec;
+
+        if (!look || !spec || !here(state.look.window) || !document.body) {
+            if (look) {
+                look.style.display = 'none';
+            }
+
+            return false;
+        }
+
+        const key = `${state.current}:${spec}`;
+
+        if (key !== lookKey || !lookTarget?.isConnected || Date.now() - lookAt > 1500) {
+            lookTarget = find(spec);
+            lookKey = key;
+            lookAt = Date.now();
+        }
+
+        if (!lookTarget) {
+            look.style.display = 'none';
+
+            return false;
+        }
+
+        if (lookScrolled !== key) {
+            lookScrolled = key;
+            lookTarget.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }
+
+        box(look, lookTarget.getBoundingClientRect(), 6);
+
+        return true;
+    }
+
+    // While the script runs, the field it types into glows; otherwise the pointer and the glow go away
+    // (the presenter's own mouse moves over this window too).
+    function trackPointer() {
+        const working = state?.pointer && state.state === 'working';
+
+        if (cursor && !working) {
+            cursor.style.display = 'none';
+        }
+
+        if (!glow) {
+            return;
+        }
+
+        if (working && typing?.isConnected) {
+            box(glow, typing.getBoundingClientRect(), 2);
+        } else {
+            glow.style.display = 'none';
+        }
+    }
+
     function track() {
         if (host && !host.isConnected && document.documentElement) {
             document.documentElement.appendChild(host);
@@ -864,6 +960,10 @@ ${ending ? '' : `<div class="row"><button class="btn ghost" data-act="problem">$
         if (!ring || docked) {
             return;
         }
+
+        const looking = trackLook();
+
+        trackPointer();
 
         if (!step?.highlight || !isMine(step) || !document.body) {
             ring.style.display = 'none';
@@ -889,19 +989,65 @@ ${ending ? '' : `<div class="row"><button class="btn ghost" data-act="problem">$
             return;
         }
 
+        // A demo's result on screen comes first; the next step's own action scrolls to its element.
         if (scrolledFor !== key) {
             scrolledFor = key;
-            found.scrollIntoView({ block: 'center', behavior: 'smooth' });
+
+            if (!looking) {
+                found.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            }
         }
 
-        const r = found.getBoundingClientRect();
+        box(ring, found.getBoundingClientRect(), 5);
+    }
 
-        Object.assign(ring.style, {
-            display: 'block',
-            top: `${r.top - 5}px`,
-            left: `${r.left - 5}px`,
-            width: `${r.width + 10}px`,
-            height: `${r.height + 10}px`,
+    // The mouse the demo script moves (Playwright sends real mouse events) draws the pointer and its
+    // clicks, only while a step runs.
+    if (!docked) {
+        const driving = () => state?.pointer && state.state === 'working';
+
+        window.addEventListener(
+            'mousemove',
+            (event) => {
+                if (cursor && driving()) {
+                    Object.assign(cursor.style, { display: 'block', left: `${event.clientX}px`, top: `${event.clientY}px` });
+                }
+            },
+            { capture: true, passive: true },
+        );
+        window.addEventListener(
+            'mousedown',
+            (event) => {
+                if (!effects || !driving()) {
+                    return;
+                }
+
+                const dot = document.createElement('div');
+
+                dot.className = 'ripple';
+                Object.assign(dot.style, { left: `${event.clientX}px`, top: `${event.clientY}px` });
+                effects.appendChild(dot);
+                setTimeout(() => dot.remove(), 700);
+            },
+            true,
+        );
+        window.addEventListener(
+            'focusin',
+            (event) => {
+                const el = event.composedPath()[0];
+
+                typing = el?.matches?.(
+                    'input:not([type=checkbox]):not([type=radio]):not([type=hidden]), textarea, select, [contenteditable=""], [contenteditable=true]',
+                )
+                    ? el
+                    : null;
+                trackPointer();
+            },
+            true,
+        );
+        window.addEventListener('focusout', () => {
+            typing = null;
+            trackPointer();
         });
     }
 
@@ -964,6 +1110,13 @@ ${ending ? '' : `<div class="row"><button class="btn ghost" data-act="problem">$
     }
 
     window.__tourRender = render;
+    // For demo.mjs's check that a step's `look` names something on the page: null when nothing
+    // matches, else what matched (its tag and the start of its text), to see it is the right one.
+    window.__tourFind = (spec) => {
+        const el = document.body && find(spec);
+
+        return el ? `${el.tagName.toLowerCase()}: ${norm(el.innerText || el.value || el.getAttribute('aria-label')).slice(0, 70)}` : null;
+    };
     window.__tourHide = (hidden) => {
         if (host) {
             host.style.display = hidden ? 'none' : '';

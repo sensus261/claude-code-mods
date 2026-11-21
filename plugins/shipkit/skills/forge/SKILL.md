@@ -21,16 +21,18 @@ Read `scan.md` (next to this file) and `$KIT/profile/GUIDE.md` before Stage 1.
 ```
 .claude/commands/<prefix>:*.md        the commands (from templates: don't hand-edit unless you mean it)
 .claude/<prefix>-shared/              templates' shared files + the profile (project-owned):
-    project.md routing-tables.md local-gate.md review-rules.md upgrade-steps.md [tour.md tour/surfaces.json]
+    project.md routing-tables.md local-gate.md review-rules.md upgrade-steps.md [tour.md tour/surfaces.json tour/runner.json]
     shipkit.json                      choices + a hash of every generated file
     playbooks/                        story playbooks (project-owned, never generated: forge leaves them alone)
+    tours/<ID>/tour.json              committed guided tours (project-owned, never generated: forge leaves them alone)
 ```
 
 Packs: **core** (24 commands: PRD → issue → implement → PR/MR → checks → pre-merge review → ship,
 the staged/branch reviews, changelog, docs sync, migrations, tag-release, audit-deps, clear),
 **qa** (`run-playbook`, the test-playbook format, story playbooks), **tour** (`pr-tour`, guided
 tours in a real browser with a control window beside the app, and `run-playbook … demo`, a guided
-demo of a story playbook; needs qa and a web UI).
+demo of a story playbook; tours are committed with their change and run again **without an agent**,
+`tour/tour.mjs`, like story demos, `tour/present.mjs`; needs qa and a web UI).
 
 Modes: **committed** (normal files; the scratch output — `.claude/.tmp/`, `reports/`, review
 reports, `ISSUE-*` notes — is added to `.gitignore`), **hidden** (everything listed in
@@ -103,6 +105,15 @@ config) so existing references and the user's habits stay valid.
      guided-tour surfaces, accounts and runner → `project.md` / `local-gate.md` / `tour.md` /
      `tour/surfaces.json`;
    - anything else project-specific in its commands that a template now reads from the profile.
+
+   **Tour pack:** `tour/runner.json` is the machine form of `tour.md` §Runner and §Data (GUIDE.md
+   says its keys): `launch` from the launch command, `env` from where Playwright resolves, and
+   `preflight` from `project.md` §Dev stack (the services, what serves the front end, migrations,
+   workers). `prepare` only when the project already has a fixture entry point; otherwise `tour.md`
+   §Data says `None yet` and the first tour that needs data adds it. Add the row
+   `node <shared>/tour/tour.mjs --lint   # when <shared>/tours/ changed` to `local-gate.md` §Gate.
+   A legacy toolkit with committed tours elsewhere (`.claude/tours/`): say so, and offer to move them
+   to `<shared>/tours/` (a `git mv`, asked).
    A profile file that already exists (a rescan, or a name the legacy folder shares, like
    `routing-tables.md`) is **edited in place**, never replaced: its rows stay.
 3. Show what was written: one line per file with its counts (`routing-tables.md: 12 area tags,
@@ -160,7 +171,10 @@ hidden mode; switching modes moves it). Read its JSON: `done`, `pending` (left f
    chose to leave).
 2. Hidden mode: `git -C "$P" status --short -- .claude` shows none of the toolkit's files.
    Committed mode: `git -C "$P" check-ignore -q .claude/.tmp/x && echo ignored`.
-3. Every file the commands cite exists: `grep -oh '\.claude/[A-Za-z0-9_./:-]*\.md' "$P"/.claude/commands/<prefix>:*.md "$P"/<shared>/*.md | sort -u`,
+3. Tour pack: `node "$P/<shared>/tour/tour.mjs" --lint` exits 0 (no tours yet is fine), and
+   `node -e 'JSON.parse(require("fs").readFileSync(process.argv[1]))' "$P/<shared>/tour/runner.json"`
+   parses.
+4. Every file the commands cite exists: `grep -oh '\.claude/[A-Za-z0-9_./:-]*\.md' "$P"/.claude/commands/<prefix>:*.md "$P"/<shared>/*.md | sort -u`,
    then `test -e` each (ignore the ones under `.claude/.tmp`). A missing profile file → write it
    (Stage 3).
 
@@ -176,6 +190,14 @@ Start with: /<prefix>:plan-to-prd, /<prefix>:start-working-on-issue <n>, /<prefi
 ```
 
 New command files show up in the `/` menu right away; if one doesn't, restart the session.
+
+Tour pack, committed mode, a `package.json` at the repo root: offer once (**AskUserQuestion**) to add
+`npm run` aliases for the agent-free runners, so a teammate types `npm run tour -- <ID>` and
+`npm run demo -- <story>`: **Add `tour` and `demo` (Recommended)** / **No**. Only names its `scripts`
+don't use yet (taken → offer `tour:<prefix>` / `demo:<prefix>`), values `node <shared>/tour/tour.mjs`
+and `node <shared>/tour/present.mjs`. It edits a file outside `.claude/`: show the two lines first,
+change nothing else in the file (keep its indentation), and name them in `tour.md` §Runner. Hidden
+mode never touches it.
 
 Committed mode: offer to commit the toolkit (the user's commit rule applies: ask, naming the branch,
 the files and a message such as `chore(claude): add the /<prefix>:* workflow commands (shipkit
@@ -196,7 +218,8 @@ Same stages, with these differences:
   - new sync-pair candidates (a new setting file, a new migration tool, a new client of an API);
   - gate, CI and dependency commands that changed (CI is the authority);
   - new migrations, deploy files or scheduled jobs for `upgrade-steps.md`;
-  - (tour) surfaces whose port or sign-in form changed.
+  - (tour) surfaces whose port or sign-in form changed; `runner.json` preflight steps whose service,
+    dev server or migration command changed; a fixture entry point that appeared (`prepare`).
   Edit the chosen rows in place; leave everything else alone.
 - **Stage 4** is where template upgrades arrive: `update` and `merged` rows are the plugin's
   improvements; show the template changes briefly (what got better), not every line.

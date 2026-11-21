@@ -77,7 +77,7 @@ plugins/shipkit/                    skills/ (forge, harvest), kit/ (renderer, te
 ```
 
 Each mod is a self-contained hooks module: `hooks/hooks.json` points at `hooks/register.tsx`. `shipkit` is
-skills plus a dependency-free Node renderer: `node --test plugins/shipkit/kit/render.test.mjs`.
+skills plus a dependency-free Node renderer: `node --test plugins/shipkit/kit/*.test.mjs`.
 
 ## Develop
 

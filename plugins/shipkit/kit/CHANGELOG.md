@@ -1,5 +1,34 @@
 # shipkit kit changelog
 
+## 0.3.0 — 2026-11-21
+
+- **Guided tours run without an agent.** A tour is committed with its change,
+  `<shared>/tours/<ID>/tour.json` (format v2: `vars` by name, `touches` per step, `verifiedOn` /
+  `verifiedAt`, `pr`), and `tour/tour.mjs <ID | PR number>` runs it with no Claude Code: the stack's
+  preflight, the fixture, the tour browser, the windows signed in, each ✓ / ✗, a report it offers to
+  post on the PR / MR, and `verifiedOn` once every step passed. `--check` lists the steps whose files
+  changed since the tour was checked (exit 2), `--lint` checks every tour file (for CI: shape, ≤ 8
+  steps, surfaces, `{VAR}` used = declared, no tokens), `--prepare` runs the fixture alone,
+  `--markdown` prints the PR block, `--agent` leaves each ✗ to Claude Code.
+- **Tour data comes from a fixture, not prose.** One `prepare` command per project (new profile file
+  `tour/runner.json`, with `launch`, `env` and the `preflight` steps; `tour.md` gains `## Data`): it
+  finds what an earlier run left unused or makes it through the app's own code, writes the throwaway
+  accounts' passwords to the accounts file, and prints the vars.
+- **`/pr-tour` writes, repairs and runs committed tours:** `--check` first and only the stale steps
+  re-read; `--from-report` picks up a teammate's agent-free run; a tour built live is offered for
+  commit with its fixture, and its steps go in the PR description as a `<!-- <prefix>:guided-tour -->`
+  block. run-playbook's tour of the changes can become one too.
+- **Story demos without an agent:** `tour/present.mjs <story> [parts]` runs a story playbook's part
+  scripts after its `setup.mjs` (Part 0 as a script) with `demo.json` (title, sign-in, start pages,
+  reset), and prints the *Demo ready* block. Same workspace as run-playbook's demo mode.
+- **Demos show the viewer where to look:** a pointer glides to every element the script clicks or
+  types into (one hook on Playwright's Frame actions, `DEMO_POINTER=0` turns it off), and a step's
+  new `look` puts an amber ring on its result until the next step; each look is reported as a `look`
+  event (`DEMO_LOOKSHOTS=1` keeps a screenshot), and `present.mjs --rehearse` prints a ring that finds
+  nothing.
+- **Forge** writes `tour/runner.json` from the scan, adds the `--lint` gate row, and in committed mode
+  offers `npm run tour` / `npm run demo` aliases in the root `package.json`.
+
 ## 0.2.0 — 2026-11-20
 
 - **Guided tours get a control window.** `open.mjs --tour` opens the tour panel in its own window at

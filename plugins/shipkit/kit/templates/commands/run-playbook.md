@@ -116,7 +116,8 @@ A demo is shown, not only built. The person drives it from the control window of
   `{{shared}}/tour/demo.mjs` (read its header). Run the existing ones as they are. A part in scope
   with no script: write it from the playbook part, following the existing scripts:
   - one `steps` entry per playbook step (`id` `<P>.<S>`, `do` who does what, `see` its `→ Expect:`,
-    `highlight` the control it names), and a last `end` entry;
+    `highlight` the control it names, `look` where its result shows: *What the viewer sees*, below),
+    and a last `end` entry;
   - `demo.window(<role>, { surface, login })` per role of the part, signed in with the throwaway
     account (`tour.md` §Accounts), or without `login` for a public page;
   - `demo.go`, or `demo.wait` + `demo.act`, before every page and every action; `demo.mark` after the
@@ -129,9 +130,23 @@ A demo is shown, not only built. The person drives it from the control window of
   `DEMO_AUTO=1 TOUR_CDP=http://127.0.0.1:<port> node <script>`, then `chrome.sh stop` with the same
   port.
 - **Layout.** The control window at the right edge of the screen and the app windows to its left, one
-  per role, desktop-sized, with only a pulsing ring on the element the next step uses. No phone or
-  dark windows: a demo doesn't need every device (`DEMO_DEVICES=1` brings them back, with screenshots
-  in both themes at 1440 + 360 px). One screenshot per failed or ✗ step, in `$EV`.
+  per role, desktop-sized. No phone or dark windows: a demo doesn't need every device
+  (`DEMO_DEVICES=1` brings them back, with screenshots in both themes at 1440 + 360 px). One
+  screenshot per failed or ✗ step, in `$EV`.
+- **What the viewer sees.** Someone watching a shared screen may see only the app window, so the
+  window itself shows where to look, and nothing else (no label, no caption):
+  - a **pointer** glides to every element the script clicks or types into, with a ripple on each
+    click and a glow on the field being filled. It comes by itself: every Playwright action goes
+    through one hook in `demo.mjs`, so a part script needs nothing for it (`DEMO_POINTER=0` turns it off);
+  - a **violet ring** before a step, on its `highlight` (what it will use);
+  - an **amber ring** after a step, on its `look` (where its result shows: the total, the new status,
+    the record that appeared), until the next step starts; not on a failed step. A `look` is visible
+    text (the smallest visible element holding it wins, buttons and links first, so pick text only the
+    result has: `Order approved`, not `approved`), `css=<selector>` (a canvas, a field), or a `{VAR}`
+    the parts saved (`{ORDER_CODE}`). Every step whose result is on a page gets one; a download has
+    none. Each look is a `look` event saying what it rings (`"found": "dd: 762.30"`, or `null`);
+    `DEMO_LOOKSHOTS=1` keeps `<evidence>/<step>-look.jpg` as the viewer sees it. Check every new
+    look that way, on a smoke test, before a person sees it.
 - **Two clicks per step.** **▶ Do it** (or Enter) runs what the `Next:` line says. Then the control
   window shows the script's own check as a green or red line above the step and asks **✓ Looks
   right** / **✗ Not right**; a ✗ carries the person's words and a screenshot of that window. There is
@@ -156,6 +171,17 @@ A demo is shown, not only built. The person drives it from the control window of
   `pkill -f '{{shared}}/playbooks/<stem>/part-'` (SIGTERM: the scripts close their own windows; never
   `-9`), put back what the parts already run changed (a read-only part changed nothing), and launch
   again from the part they name.
+- **Without an agent.** Showing a story should not need you every time. Once its folder has
+  `setup.mjs` (Part 0 as a script: the throwaway accounts written to `DEMO_ACCOUNTS`, the base data,
+  safe to run again, one `{"type":"setup","item","state":"done|already|failed","why"}` line per item)
+  and `demo.json` (`title`, `surface` or `base`, `signIn` without passwords, `startAt` with `{VAR}`s,
+  `reset`: the commands that wipe dev back to the seed, `standaloneFrom`), anyone runs it with
+  `node {{shared}}/tour/present.mjs <stem> [parts]` (`test-playbook.md` §Story playbooks): preflight,
+  the reset question, setup, the parts in one browser, the *Demo ready* block. It shares this mode's
+  workspace, so a demo can go on with or without you. When a demo run here wrote a part script and the
+  story has no `setup.mjs` or `demo.json` yet, offer once to write them from Part 0 and the *Demo
+  ready* block (**Yes (Recommended)**, **No**); smoke-test `setup.mjs` twice (the second run says
+  `already`). They are the project's files, committed with the playbook like the part scripts.
 
 The *Demo ready* block:
 
@@ -375,14 +401,15 @@ The person judges the part's 👤 steps on the real pages, signed in, guided by 
    - Windows: the throwaway accounts by surface (`tour.md` §Accounts), public pages by whole
      `http://localhost:<port>` address. A check about 360 px or dark gets its own `mobile` / `dark`
      window.
-   - The data is what the part already set up: the tour adds none.
-2. **Run it:** `guided-tour.md` §3–§5, with the old log removed first.
+   - The data is what the part already set up: the tour adds none. A part tour is a quick look, never
+     committed: it stands on this run's data.
+2. **Run it:** `guided-tour.md` §3 *A quick look*, then §4–§5, with the old log removed first.
 3. **Record each answer** as it comes, in `$RES`:
    - **ok** → ✅, evidence `tour ✓`.
    - **problem** → ❌ (🟡 when the person says the playbook is what's wrong), evidence the `shot`
      (from the repo root) and the person's words. Trace it read-only and add a finding, as in *On ❌*
      below. Never fix it here: set `"status": "Noted as finding <k>: <one line>"`, `"state":
-     "ready"`.
+     "ready"`, `"current": N+1` (after the last step: `"state": "done"` instead).
    - **closed** before every step was answered → the unanswered steps go to *Handing evidence to
      the user*.
 4. **Between parts** the tour browser stays up (`chrome.sh` reuses it); each part opens new windows.
@@ -513,8 +540,10 @@ them):
 - **Yes, guide me (Recommended)**
 - **No**: go to Stage 7.
 
-Yes → follow `{{shared}}/guided-tour.md` with `$WS/tour/changes.json`, on the data and accounts the
-run already made (`$TOUR=shots` runs start the tour browser here: Stage 3, step 7):
+Yes → a committed tour of the issue (`{{shared}}/tours/issue-<n>/tour.json`) that is still fresh
+(`tour.mjs issue-<n> --check` exits 0) → run it as it is (`guided-tour.md` §3). Otherwise follow
+`{{shared}}/guided-tour.md` §3 *A quick look* with `$WS/tour/changes.json`, on the data and accounts
+the run already made (`$TOUR=shots` runs start the tour browser here: Stage 3, step 7):
 
 - **The playbook's `## Tour` section** is the tour: translate it (`guided-tour.md` §2), its `<NAME>`s
   from `$RES` §Variables, its `Needs:` already met by the parts that ran (a part that didn't run:
@@ -526,6 +555,13 @@ run already made (`$TOUR=shots` runs start the tour browser here: Stage 3, step 
 
 A problem reported here is a finding of the run: add it to `$RES` §Findings, then ask **Fix it here**
 (Stage 6's rules, then *Check step N again*) / **Just note it**.
+
+Every step ✓ and no committed tour yet → offer once to make it one, so anyone can run it later
+without an agent: *"Turn this tour into a committed one (`{{shared}}/tours/issue-<n>/`), with a fixture
+that makes its data?"* (**Yes (Recommended)**, **No**). Yes → write the tour file from
+`changes.json` (the values back to `{NAME}`s, `guided-tour.md` §2) and the fixture from the setup steps
+of the parts that made that data, through the same code paths (`tour.md` §Data); check them
+(`--lint`, `--prepare` twice) and follow `guided-tour.md` §6 for the commit.
 {{/if}}
 
 ## Stage 7 — Put dev back

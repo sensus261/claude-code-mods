@@ -53,7 +53,7 @@ test('every template renders in every pack and host combination, with no placeho
         if (f.src.startsWith('shared/tour/')) continue
         assert.doesNotMatch(f.content, /\{\{[A-Za-z#/][^}]*\}\}/, `${f.src} (${host}, ${packs})`)
         if (!packs.includes('qa')) assert.doesNotMatch(f.content, /run-playbook|QA-RESULTS|test-playbook\.md/, `${f.src} leaks qa`)
-        if (!packs.includes('tour')) assert.doesNotMatch(f.content, /pr-tour|guided-tour|tour\.md|demo\.mjs|Demo mode|part-<N>\.mjs/, `${f.src} leaks tour`)
+        if (!packs.includes('tour')) assert.doesNotMatch(f.content, /pr-tour|guided-tour|tour\.md|tour\.mjs|present\.mjs|tours\/|demo\.mjs|Demo mode|part-<N>\.mjs/, `${f.src} leaks tour`)
         if (host === 'gitlab') assert.doesNotMatch(f.content, /\bgh (pr|issue|api|run|label|release|repo|auth)\b/, `${f.src} leaks gh`)
       }
       const dests = files.map((f) => f.dest)
@@ -246,7 +246,8 @@ test('the tour scripts parse, and every script they import is generated next to 
     for (const [, name] of f.content.matchAll(/from '\.\/([^']+)'/g)) assert.ok(names.has(name), `${f.src} imports ./${name}`)
     for (const [, name] of f.content.matchAll(/join\(HERE, '([^']+\.(?:js|mjs|sh))'\)/g)) assert.ok(names.has(name), `${f.src} reads ${name}`)
   }
-  for (const name of ['open.mjs', 'demo.mjs', 'tour-control.mjs', 'surfaces.mjs', 'tour-panel.js', 'chrome.sh']) assert.ok(names.has(name), name)
+  for (const name of ['open.mjs', 'demo.mjs', 'tour-control.mjs', 'surfaces.mjs', 'tour-panel.js', 'chrome.sh', 'tour.mjs', 'present.mjs', 'stack.mjs', 'tour-file.mjs']) assert.ok(names.has(name), name)
+  for (const name of ['tour.mjs', 'present.mjs']) assert.equal(tour.find((f) => path.basename(f.dest) === name).mode, '755', `${name} is executable`)
 })
 
 test('the panel knows the three modes the scripts ask for', () => {

@@ -41,6 +41,7 @@ Needs Node ≥ 18 (the renderer) and `gh` or `glab` signed in (the PR / MR comma
   control window at the right edge of the screen with the steps and ✓ / ✗ buttons the agent watches
   live, and a ring on the element each step names; plus `run-playbook … demo`, which builds a story
   playbook's data up to a part in that guided browser and keeps it, to show the app; for web apps).
+  Tours are **committed with their change** and run again **without an agent** (below).
 - **Git host.** GitHub (`gh`) or GitLab, self-hosted included (`glab`). Every host call goes through
   named recipes in one file, `host.md`, so the commands read the same on both.
 
@@ -58,6 +59,32 @@ Needs Node ≥ 18 (the renderer) and `gh` or `glab` signed in (the PR / MR comma
 
 They never commit, push or post without asking, and a commit rule in your CLAUDE.md always wins.
 
+## Guided tours without an agent *(tour pack)*
+
+A tour is written once, by `/<prefix>:pr-tour` (or run-playbook's tour of the changes), and committed
+with its change: `<shared>/tours/<ID>/tour.json` holds the windows and steps, the names of the data it
+needs, the files each step depends on (`touches`) and the commit it was last checked on
+(`verifiedOn`). Its data comes from a **fixture**, the project's own code behind one `prepare`
+command (`tour/runner.json`), which finds what an earlier run left or makes it through the app, and
+writes the throwaway accounts. Then anyone runs it, no Claude Code, no tokens:
+
+```bash
+node .claude/<prefix>-shared/tour/tour.mjs issue-118    # npm run tour -- issue-118, when forge added the alias
+node .claude/<prefix>-shared/tour/tour.mjs 120          # the tour PR / MR #120 adds: offers to check it out
+node .claude/<prefix>-shared/tour/tour.mjs --list
+node .claude/<prefix>-shared/tour/tour.mjs issue-118 --check   # no windows: the steps whose files changed since it was checked
+node .claude/<prefix>-shared/tour/tour.mjs --lint              # for CI: every tour file well formed
+node .claude/<prefix>-shared/tour/present.mjs <story> 1-4      # a story playbook's demo (npm run demo -- …)
+```
+
+The runner checks the dev stack (`runner.json` `preflight`: services, dev server, migrations,
+workers; it asks before starting or changing anything), runs the fixture, opens the windows signed in
+with the control window, notes each ✓ / ✗, writes a report, and offers to post it on the PR / MR.
+Claude Code is for what needs judgment: writing a tour, repairing the stale steps `--check` lists, and
+fixing what a teammate's report found (`/<prefix>:pr-tour <ID> --from-report`). In demos, the app
+window shows the viewer where to look: a pointer that glides to what the script clicks, and an amber
+ring on each step's result (`look`).
+
 ## What lives where
 
 ```
@@ -65,11 +92,13 @@ plugins/shipkit/
   skills/forge/SKILL.md      the install / rescan flow       skills/forge/scan.md   what the scan reads
   skills/harvest/SKILL.md    project edits → templates
   kit/render.mjs             the renderer (no dependencies)  kit/render.test.mjs    its tests
+                                                             kit/tour.test.mjs      the tour file's checks
   kit/manifest.json          template → destination, pack, host; the profile files per pack
   kit/templates/commands/    one file per command
   kit/templates/shared/      host recipes, PR description and notes, reports, checklists, playbook, tour
   kit/templates/shared/tour/ chrome.sh, open.mjs (a tour), demo.mjs (a guided demo), tour-control.mjs
-                             (control window, layout, ring), surfaces.mjs (sign-in), tour-panel.js
+                             (control window, layout, ring), surfaces.mjs (sign-in), tour-panel.js,
+                             tour.mjs / present.mjs (the agent-free runners), stack.mjs, tour-file.mjs
   kit/profile/GUIDE.md       what each profile file holds
 ```
 
@@ -78,9 +107,10 @@ In a project:
 ```
 .claude/commands/<prefix>:*.md      generated
 .claude/<prefix>-shared/            generated shared files + the profile (yours):
-    project.md  routing-tables.md  local-gate.md  review-rules.md  upgrade-steps.md  [tour.md  tour/surfaces.json]
+    project.md  routing-tables.md  local-gate.md  review-rules.md  upgrade-steps.md  [tour.md  tour/surfaces.json  tour/runner.json]
     shipkit.json                    your choices + a hash of every generated file
-    playbooks/                      story playbooks (yours): <name>.md, samples/, <name>/part-<N>.mjs
+    playbooks/                      story playbooks (yours): <name>.md, samples/, <name>/part-<N>.mjs, setup.mjs, demo.json
+    tours/<ID>/tour.json            committed guided tours (yours)
 ```
 
 The merge bases for future upgrades are kept under the repo's git dir (`.git/shipkit/`), never
@@ -92,7 +122,7 @@ committed.
 node kit/render.mjs plan  <project>                         what would change, as JSON (writes nothing in the project)
 node kit/render.mjs apply <project> [--take|--keep|--remove|--skip <file>]…
 node kit/render.mjs render --root <project> <template>      one template, rendered, to stdout
-node --test kit/render.test.mjs
+node --test kit/render.test.mjs kit/tour.test.mjs
 ```
 
 Templates use `{{prefix}}`, `{{shared}}`, `{{tmp}}`, `{{reports}}`, `{{base}}`, `{{PR}}`, `{{a_PR}}`,

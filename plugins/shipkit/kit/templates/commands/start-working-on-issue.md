@@ -189,7 +189,8 @@ and say so in one line.{{/if}}
 Then show the path, the parts table{{#if tour}} and the tour's step count{{/if}}, and say that
 `/{{prefix}}:run-playbook <num>` runs it (it drives the steps it can, records the results in
 `ISSUE-<num>-QA-RESULTS.md` and fixes the failures the user picks){{#if tour}} and `/{{prefix}}:pr-tour`
-opens the tour on its own{{/if}}.
+opens the tour on its own, then offers to commit it (`{{shared}}/tours/issue-<num>/`) so anyone can run
+it later without an agent{{/if}}.
 {{else}}
 Not part of this toolkit (the QA pack is off). Go to Stage 9.
 {{/if}}
@@ -235,7 +236,8 @@ the {{PR}} as collapsible comments linked from its description.
 
    Its other gates still run: the description review (Stage 3) and the {{PR}} notes (Stage 5, the
    same files as below). Then point at `/{{prefix}}:pr-checks`{{#if tour}}, and `/{{prefix}}:pr-tour` to see
-   the change hands-on{{/if}}.
+   the change hands-on (a tour the branch already commits runs without an agent too:
+   `node {{shared}}/tour/tour.mjs <ID>`){{/if}}.
 
 ### Open {{PR}} → refresh it
 

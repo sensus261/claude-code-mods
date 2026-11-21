@@ -90,10 +90,40 @@ config changes, and the other sections say `None.`
 | Section | Holds |
 |---|---|
 | `## Surfaces` | `| Surface | Host address | Signs in with | Shows changes in |`: each app a tour window can open (a key of `tour/surfaces.json`), its address **on the host** (the tour browser runs there), the account kind, and the source folders whose changes it shows. Plus pages with no account (a mail catcher, a public site) |
-| `## Accounts` | Per account kind (`<surface> <role>`): how to create a throwaway one, set its password from a script, enable / reset it, disable it. Fake identifiers only. Where the roles are defined |
-| `## Runner` | The launch command (`node .claude/<prefix>-shared/tour/open.mjs`, or the container form, e.g. `docker compose run --rm -T --name <prefix>-tour toolbox node …`), the stop command (`docker stop <prefix>-tour`, or TaskStop of the background task; never a kill that skips the script's exit, which closes its windows), where Playwright resolves (`--playwright <dir>` / `TOUR_PLAYWRIGHT` when it isn't the repo root) and how to install it once. Demo part scripts (`playbooks/<name>/part-<N>.mjs`) run the same way, with `DEMO_*` / `TOUR_*` environment variables passed through |
+| `## Accounts` | Per account kind (`<surface> <role>`): how to create a throwaway one, set its password from a script, enable / reset it, disable it. Fake identifiers only. Where the roles are defined. A tour fixture makes its accounts this way (`tour-<ID>-<role>@example.test`), re-using one an earlier run made by resetting its password |
+| `## Runner` | The launch command (`node .claude/<prefix>-shared/tour/open.mjs`, or the container form, e.g. `docker compose run --rm -T --name <prefix>-tour toolbox node …`), the stop command (`docker stop <prefix>-tour`, or TaskStop of the background task; never a kill that skips the script's exit, which closes its windows), where Playwright resolves (`--playwright <dir>` / `TOUR_PLAYWRIGHT` when it isn't the repo root) and how to install it once. Demo part scripts (`playbooks/<name>/part-<N>.mjs`) run the same way, with `DEMO_*` / `TOUR_*` environment variables passed through. The agent-free commands (`tour/tour.mjs`, `tour/present.mjs`, on the host) and their `npm run` aliases when the project has them. `tour/runner.json` holds the launch and the stack's preflight in machine form: keep the two in step |
+| `## Data` | How a committed tour gets its data (`guided-tour.md` §1): where its **fixtures** live (one per tour that needs more than the seed, in the project's own seed or test-data folder, or `<shared>/tours/<ID>/prepare.mjs`), the one **prepare command** that runs one (`runner.json` `prepare`), the base class or helper they share, the **fixture test** that runs every fixture on a fresh seed twice and checks the tour files (or `None yet: <the command it will be>`), and whether CI skips `.claude/`-only changes (then it must not skip `<shared>/tours/`). `None yet: the first tour that needs data adds it` until then |
 | `## Build` | What must be built or restarted before a tour shows a change (a front-end bundle, a dev server to start instead) |
 | `## Gotchas` | The project's own (a cookie for the UI language, a slow first build) |
+
+## tour/runner.json — how the agent-free runners run *(tour pack)*
+
+Read by `tour.mjs` and `present.mjs` (`tour/stack.mjs` documents every key). Commands are arrays (run
+as they are) or strings (run with `sh -c`), from the repo root, on the host:
+
+```json
+{
+  "launch": ["node"],
+  "env": { "TOUR_PLAYWRIGHT": "web" },
+  "prepare": ["./vendor/bin/sail", "artisan", "app:tour:prepare", "{id}", "--accounts={accounts}", "--json"],
+  "preflight": [
+    { "what": "the dev stack", "cmd": ["docker", "compose", "ps", "--status", "running", "--services"], "match": "^app$", "hint": "Start it: docker compose up -d" },
+    { "what": "the front-end dev server", "url": "http://localhost:5173/@vite/client", "start": ["npm", "run", "dev"], "ask": "The dev server is not running (the pages would be blank). Start it in the background?" },
+    { "what": "pending migrations", "cmd": ["./vendor/bin/sail", "artisan", "migrate:status", "--pending"], "noMatch": "Pending", "fix": ["./vendor/bin/sail", "artisan", "migrate", "--no-interaction"], "ask": "Run the pending migrations on the local database (local only)?", "optional": true },
+    { "what": "the workers on this branch's code", "run": ["./vendor/bin/sail", "artisan", "queue:restart"] }
+  ]
+}
+```
+
+- `launch`: the prefix `open.mjs` and the part scripts run with (`tour.md` §Runner's launch command,
+  without the script). `env`: added to every command and script (where Playwright resolves).
+- `prepare`: the project's one entry point to a tour's fixture: `{id}` the tour ID, `{dir}` its folder,
+  `{accounts}` the accounts file to write. Last output line `{"vars": {…}}`; never a password on
+  stdout. Leave it out until the project has one (`tour.md` §Data).
+- `preflight`: what `guided-tour.md` §1 checks before a tour, in order, from the scan of `project.md`
+  §Dev stack: the services up (a `cmd` with `match`), what serves the front end (a `url`, with `start`),
+  migrations (`noMatch` + `fix`, `optional`, asked), workers to restart (`run`). Only what the project
+  has; never a step that reaches a real service.
 
 ## tour/surfaces.json — sign-in recipes *(tour pack)*
 

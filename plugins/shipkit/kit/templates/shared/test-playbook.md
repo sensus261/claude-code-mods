@@ -25,7 +25,10 @@ browser, to show the product (run-playbook §Demo mode){{/if}}.
 
 - **Where.** `{{shared}}/playbooks/<name>.md`, its sample files (documents, imports, images) in
   `{{shared}}/playbooks/samples/`{{#if tour}}, its guided part scripts in
-  `{{shared}}/playbooks/<name>/part-<N>.mjs`{{/if}}.
+  `{{shared}}/playbooks/<name>/part-<N>.mjs`{{/if}}.{{#if tour}}
+- **Shown without an agent.** With `setup.mjs` (Part 0 as a script) and `demo.json` beside its part
+  scripts, anyone shows the story with `node {{shared}}/tour/present.mjs <name> [parts]`, no Claude
+  Code needed (run-playbook §Demo mode, *Without an agent*, says what each file holds).{{/if}}
   They belong to the project: committed with the toolkit in committed mode, local in hidden mode.
   Change one in its own {{PR}}, after a run that confirmed the steps.
 - **Same format,** with Part 0 and *Put dev back*. Its parts build on each other, so its intro says
@@ -158,8 +161,10 @@ It opens with a `> **Live run.**` callout:
 ### Tour (last section)
 
 A ready-made guided tour of the change (`guided-tour.md`), written now, while the change is fresh.
-`/{{prefix}}:pr-tour` and `/{{prefix}}:run-playbook` (Stage 6b) fill in its Variables and open it as
-is, instead of analysing the diff again. It goes after the appendices, under exactly `## Tour`:
+`/{{prefix}}:pr-tour` and `/{{prefix}}:run-playbook` (Stage 6b) translate it instead of analysing the
+diff again, and turn it into the committed tour (`{{shared}}/tours/issue-<num>/tour.json`, with a
+fixture that makes what `Needs:` names), which anyone then runs without an agent. It goes after the
+appendices, under exactly `## Tour`:
 
 ```markdown
 ## Tour

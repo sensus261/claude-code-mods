@@ -86,7 +86,13 @@ Read, in `$KIT`: `manifest.json`, the template you're about to edit, both host r
 - **Project facts** are never in a template: they are profile references (`{{shared}}/local-gate.md`
   §Gate in a command; `local-gate.md` §Gate inside a shared file).
 - **Scripts** under `templates/shared/tour/` are copied raw (no placeholders): make them read what
-  they need from arguments, environment or `surfaces.json`.
+  they need from arguments, environment, `surfaces.json`, `runner.json` (the project's commands:
+  preflight, fixture, launch) or `shipkit.json` (prefix, base, host). A project's runner that hard-codes
+  its stack (`sail`, a tenant, a seeded password) is generalized into a `runner.json` key, never copied.
+  Host calls in a script go through `tour/stack.mjs`, for both hosts.
+- **Project-owned folders** are never harvested as templates: `<shared>/playbooks/` and
+  `<shared>/tours/` (a project's committed tours and their fixtures). What they teach (a field the tour
+  format lacks, a check the runner should make) becomes a template edit.
 - Keep the voice: short imperative sentences, the stage / gate structure, the `AskUserQuestion`
   option style, the "never commit / never push" rules.
 
